@@ -14,12 +14,11 @@ void setup() {
   pinMode(2, INPUT_PULLUP); // Set up the button pin
   Serial.begin(9600);  // 初始化序列通訊，速率為9600bps
   
-  leds[0] = CRGB::Red; // 測試LED是否正常
-  FastLED.show();
-  delay(1000);
-  leds[0] = CRGB::Black;
-  FastLED.show();
-  
+  // leds[0] = CRGB::Green; // 測試LED是否正常
+  // FastLED.show();
+  // delay(500);
+  // leds[0] = CRGB::Black;
+  // FastLED.show();
 }
 
 void loop() {
