@@ -4,7 +4,8 @@ from PyQt6 import QtWidgets, QtGui, QtCore
 #===== 標籤設定 =====#
 def label_setup(text, font_Set):
     label = QtWidgets.QLabel(text)
-    label.setStyleSheet(f"{font_Set}; border: 0px;")
+    label.setStyleSheet(f"{font_Set}; border: 0px")
+    # label.setFixedWidth(100)
     return label
 
 #===== 輸入框設定 =====# 
