@@ -19,140 +19,130 @@ class InfoWindow(QtWidgets.QFrame):
         content_layout = QtWidgets.QVBoxLayout(content_widget)
         content_layout.setSpacing(10)
         
-        #===== Create first gird layout =====#
-        grid1_box = QtWidgets.QWidget()
-        grid1_box.setStyleSheet("")
-        grid1_box.setFixedHeight(40)
-        self.grid1_layout = QtWidgets.QGridLayout(grid1_box)
-        label_personal_data = label_setup("表單", None)
-        label_personal_data.setStyleSheet("font-size: 24px; font-family: 微軟正黑體; font-weight: bold; border: 0px;")
-        self.grid1_layout.addWidget(label_personal_data, 0, 0)
-        self.grid1_layout.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        #===== Finish =====#
+        #===== Title =====#
+        box_title = QtWidgets.QWidget()
+        box_title.setStyleSheet("")
+        box_title.setFixedHeight(40)
+        self.layout_box_title = QtWidgets.QGridLayout(box_title)
+        label_box_title = label_setup("表單", None)
+        label_box_title.setStyleSheet("font-size: 24px; font-family: 微軟正黑體; font-weight: bold; border: 0px;")
+        self.layout_box_title.addWidget(label_box_title, 0, 0)
+        self.layout_box_title.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        #===== Title =====#
 
-        #===== Create second gird layout =====#
-        grid2_box = QtWidgets.QWidget()
-        grid2_box.setStyleSheet("border: 0px;")
-        grid2_box.setFixedHeight(40)
-        self.grid2_layout = QtWidgets.QGridLayout(grid2_box)
+        #===== basic information =====#
+        title_basic_information = QtWidgets.QWidget()
+        title_basic_information.setStyleSheet("border: 0px;")
+        title_basic_information.setFixedHeight(40)
+        self.layout_title_basic_information = QtWidgets.QGridLayout(title_basic_information)
         label_base_information = label_setup("基本資料", "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;")
-        self.grid2_layout.addWidget(label_base_information, 0, 0, 1, 4)
-        #===== Finish =====#
-        
-        #===== Create third gird layout =====#
-        grid3_box = QtWidgets.QWidget()
-        grid3_box.setStyleSheet("border: 0px;")
-        self.grid3_layout = QtWidgets.QGridLayout(grid3_box)
-        self.grid3_layout.setSpacing(15)
+        self.layout_title_basic_information.addWidget(label_base_information, 0, 0, 1, 4)
+
+        box_basic_information = QtWidgets.QWidget()
+        box_basic_information.setStyleSheet("border: 0px;")
+        self.layout_box_basic_information = QtWidgets.QGridLayout(box_basic_information)
+        self.layout_box_basic_information.setSpacing(15)
         label_ID = label_setup("編號 :", "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;")
-        self.grid3_layout.addWidget(label_ID, 0, 0)
+        self.layout_box_basic_information.addWidget(label_ID, 0, 0)
         entry_ID = entry_setup("請輸入編號", "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;")
-        self.grid3_layout.addWidget(entry_ID, 0, 1)
+        self.layout_box_basic_information.addWidget(entry_ID, 0, 1)
         self.widgets['ID'] = entry_ID
 
         label_gender = label_setup("性別 :", "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;")
-        self.grid3_layout.addWidget(label_gender, 1, 0)
+        self.layout_box_basic_information.addWidget(label_gender, 1, 0)
         gender = combobox_setup(["請選擇性別","男", "女"], "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;")
-        self.grid3_layout.addWidget(gender, 1, 1)
+        self.layout_box_basic_information.addWidget(gender, 1, 1)
         self.widgets['gender'] = gender
 
         label_photography_year = label_setup("拍攝日期 :", "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;")
-        self.grid3_layout.addWidget(label_photography_year, 0, 2)
+        self.layout_box_basic_information.addWidget(label_photography_year, 0, 2)
         capture_pic_date = date_setup(self, "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;")
-        self.grid3_layout.addWidget(capture_pic_date, 0, 3)
+        self.layout_box_basic_information.addWidget(capture_pic_date, 0, 3)
         self.widgets['capture_pic_date'] = capture_pic_date
 
         label_birthday = label_setup("生日 :", "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;")
-        self.grid3_layout.addWidget(label_birthday, 1, 2)
+        self.layout_box_basic_information.addWidget(label_birthday, 1, 2)
         birthday = date_setup(self, "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;")
-        self.grid3_layout.addWidget(birthday, 1, 3)
+        self.layout_box_basic_information.addWidget(birthday, 1, 3)
         self.widgets['birthday'] = birthday
-        #===== Finish =====#
 
-        #===== Create combine second and third gird layout =====#
-        combine_layout2_layout3_box = QtWidgets.QWidget()
-        combine_layout2_layout3_box.setStyleSheet("background-color: rgb(214, 234, 248); border-radius: 20px; border : 2px solid black;")
-        self.combine_layout2_layout3 = QtWidgets.QVBoxLayout(combine_layout2_layout3_box)
-        self.combine_layout2_layout3.addWidget(grid2_box)
-        self.combine_layout2_layout3.addWidget(grid3_box)
-        #==== Finish ====#
+        parent_box_basic_information = QtWidgets.QWidget()
+        parent_box_basic_information.setStyleSheet("background-color: rgb(214, 234, 248); border-radius: 20px; border : 2px solid black;")
+        self.layout_parent_box_basic_information = QtWidgets.QVBoxLayout(parent_box_basic_information)
+        self.layout_parent_box_basic_information.addWidget(title_basic_information)
+        self.layout_parent_box_basic_information.addWidget(box_basic_information)
+        #==== basic information ====#
 
+        #===== 6QDS =====#
+        title_6QDS = QtWidgets.QWidget()
+        title_6QDS.setStyleSheet("border: 0px;")
+        self.layout_title_6QDS = QtWidgets.QGridLayout(title_6QDS)
+        self.layout_title_6QDS.setSpacing(15)
 
-        #===== Create fourth gird layout =====#
-        grid4_box = QtWidgets.QWidget()
-        grid4_box.setStyleSheet("border: 0px;")
-        self.grid4_layout = QtWidgets.QGridLayout(grid4_box)
-        self.grid4_layout.setSpacing(15)
+        label_6QDS = label_setup("6QDS", "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;")
+        self.layout_title_6QDS.addWidget(label_6QDS, 0, 0, 1, 4)
 
-        label_photography_information = label_setup("6QDS答案", "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;")
-        self.grid4_layout.addWidget(label_photography_information, 0, 0, 1, 4)
-        self.widgets['label_photography_information'] = label_photography_information
-        #==== Finish ====#
-
-        #===== Create fifth gird layout =====#
-        grid5_box = QtWidgets.QWidget()
-        grid5_box.setStyleSheet("border: 0px;")
-        self.grid5_layout = QtWidgets.QGridLayout(grid5_box)
-        self.grid5_layout.setSpacing(15)
+        box_6QDS = QtWidgets.QWidget()
+        box_6QDS.setStyleSheet("border: 0px;")
+        self.layout_box_6QDS = QtWidgets.QGridLayout(box_6QDS)
+        self.layout_box_6QDS.setSpacing(15)
         q1 = label_setup("q1 :", "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;")
-        self.grid5_layout.addWidget(q1, 0, 0)
+        self.layout_box_6QDS.addWidget(q1, 0, 0)
         entry_q1 = entry_setup("評分", "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;")
-        self.grid5_layout.addWidget(entry_q1, 0, 1)
+        self.layout_box_6QDS.addWidget(entry_q1, 0, 1)
         self.widgets['q1'] = entry_q1
         q2 = label_setup("q2 :", "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;")
-        self.grid5_layout.addWidget(q2, 0, 2)
+        self.layout_box_6QDS.addWidget(q2, 0, 2)
         entry_q2 = entry_setup("評分", "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;")
-        self.grid5_layout.addWidget(entry_q2, 0, 3)
+        self.layout_box_6QDS.addWidget(entry_q2, 0, 3)
         self.widgets['q2'] = entry_q2
         q3 = label_setup("q3 :", "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;")
-        self.grid5_layout.addWidget(q3, 0, 4)
+        self.layout_box_6QDS.addWidget(q3, 0, 4)
         entry_q3 = entry_setup("評分", "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;")
-        self.grid5_layout.addWidget(entry_q3, 0, 5)
+        self.layout_box_6QDS.addWidget(entry_q3, 0, 5)
         self.widgets['q3'] = entry_q3
         q4 = label_setup("q4 :", "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;")
-        self.grid5_layout.addWidget(q4, 0, 6)
+        self.layout_box_6QDS.addWidget(q4, 0, 6)
         entry_q4 = entry_setup("評分", "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;")
-        self.grid5_layout.addWidget(entry_q4, 0, 7)
+        self.layout_box_6QDS.addWidget(entry_q4, 0, 7)
         self.widgets['q4'] = entry_q4
         q5 = label_setup("q5 :", "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;")
-        self.grid5_layout.addWidget(q5, 0, 8)
+        self.layout_box_6QDS.addWidget(q5, 0, 8)
         entry_q5 = entry_setup("評分", "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;")
-        self.grid5_layout.addWidget(entry_q5, 0, 9)
+        self.layout_box_6QDS.addWidget(entry_q5, 0, 9)
         self.widgets['q5'] = entry_q5
         q6 = label_setup("q6 :", "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;")
-        self.grid5_layout.addWidget(q6, 1, 0)
+        self.layout_box_6QDS.addWidget(q6, 1, 0)
         entry_q6 = entry_setup("評分", "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;")
-        self.grid5_layout.addWidget(entry_q6, 1, 1)
+        self.layout_box_6QDS.addWidget(entry_q6, 1, 1)
         self.widgets['q6'] = entry_q6        
         q7 = label_setup("q7 :", "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;")
-        self.grid5_layout.addWidget(q7, 1, 2)
+        self.layout_box_6QDS.addWidget(q7, 1, 2)
         entry_q7 = entry_setup("評分", "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;")
-        self.grid5_layout.addWidget(entry_q7, 1, 3)
+        self.layout_box_6QDS.addWidget(entry_q7, 1, 3)
         self.widgets['q7'] = entry_q7
         q8 = label_setup("q8 :", "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;")
-        self.grid5_layout.addWidget(q8, 1, 4)
+        self.layout_box_6QDS.addWidget(q8, 1, 4)
         entry_q8 = entry_setup("評分", "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;")
-        self.grid5_layout.addWidget(entry_q8, 1, 5)
+        self.layout_box_6QDS.addWidget(entry_q8, 1, 5)
         self.widgets['q8'] = entry_q8
         q9 = label_setup("q9 :", "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;")
-        self.grid5_layout.addWidget(q9, 1, 6)
+        self.layout_box_6QDS.addWidget(q9, 1, 6)
         entry_q9 = entry_setup("評分", "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;")
-        self.grid5_layout.addWidget(entry_q9, 1, 7)
+        self.layout_box_6QDS.addWidget(entry_q9, 1, 7)
         self.widgets['q9'] = entry_q9
         q10 = label_setup("q10 :", "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;")
-        self.grid5_layout.addWidget(q10, 1, 8)
+        self.layout_box_6QDS.addWidget(q10, 1, 8)
         entry_q10 = entry_setup("評分", "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;")
-        self.grid5_layout.addWidget(entry_q10, 1, 9)
+        self.layout_box_6QDS.addWidget(entry_q10, 1, 9)
         self.widgets['q10'] = entry_q10
-        #===== Finish =====#
 
-        #===== Create combine fourth and fifth gird layout =====#
-        combine_layout4_layout5_box = QtWidgets.QWidget()
-        combine_layout4_layout5_box.setStyleSheet("background-color: rgb(214, 234, 248); border-radius: 20px; border : 2px solid black;")
-        self.combine_layout4_layout5 = QtWidgets.QVBoxLayout(combine_layout4_layout5_box)
-        self.combine_layout4_layout5.addWidget(grid4_box)
-        self.combine_layout4_layout5.addWidget(grid5_box)
-        #==== Finish ====#
+        parent_box_6QDS = QtWidgets.QWidget()
+        parent_box_6QDS.setStyleSheet("background-color: rgb(214, 234, 248); border-radius: 20px; border : 2px solid black;")
+        self.layout_parent_box_6QDS = QtWidgets.QVBoxLayout(parent_box_6QDS)
+        self.layout_parent_box_6QDS.addWidget(title_6QDS)
+        self.layout_parent_box_6QDS.addWidget(box_6QDS)
+        #===== 6QDS =====#  
         
         #===== Create combine eighth gird layout =====#
         grid8_layout_box = QtWidgets.QWidget()
@@ -183,7 +173,7 @@ class InfoWindow(QtWidgets.QFrame):
 
         #===== Create tenth grid layout =====#
         grid10_box = QtWidgets.QWidget()
-        # grid5_box.setFixedHeight(60)
+        # 6QDS.setFixedHeight(60)
         self.grid10_layout = QtWidgets.QGridLayout(grid10_box)
         self.grid10_layout.setSpacing(15)
 
@@ -213,12 +203,12 @@ class InfoWindow(QtWidgets.QFrame):
         #===== Finish =====#
 
         #==== Finally, add the grid layout to the main layout ====#
-        self.main_layout.addWidget(grid1_box)
-        content_layout.addWidget(grid1_box)
-        self.main_layout.addWidget(combine_layout2_layout3_box)
-        content_layout.addWidget(combine_layout2_layout3_box)
-        self.main_layout.addWidget(combine_layout4_layout5_box)
-        content_layout.addWidget(combine_layout4_layout5_box)
+        self.main_layout.addWidget(box_title)
+        content_layout.addWidget(box_title)
+        self.main_layout.addWidget(parent_box_basic_information)
+        content_layout.addWidget(parent_box_basic_information)
+        self.main_layout.addWidget(parent_box_6QDS)
+        content_layout.addWidget(parent_box_6QDS)
         self.main_layout.addWidget(combine_layout8_layout9_box)
         content_layout.addWidget(combine_layout8_layout9_box)
         self.main_layout.addWidget(grid10_box)
