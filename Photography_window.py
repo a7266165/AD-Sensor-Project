@@ -3,7 +3,6 @@ from widger_helper import label_setup, entry_setup, button_setup
 import sys
 import cv2
 
-
 class PhotographyWindow(QtWidgets.QFrame):
     def __init__(self):
         super().__init__()
@@ -114,10 +113,6 @@ class PhotographyWindow(QtWidgets.QFrame):
         q_image = QtGui.QImage(frame.data, width, height, bytes_per_line, QtGui.QImage.Format.Format_BGR888)
         self.camera_label.setPixmap(QtGui.QPixmap.fromImage(q_image))
         
-
-  
-            
-
 if __name__ == '__main__':
 
     app = QtWidgets.QApplication(sys.argv)

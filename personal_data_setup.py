@@ -4,7 +4,6 @@ from window_setup import window_setup
 import pandas as pd
 import os
 
-
 # 字型設定
 def font_setup(font, font_size, font_weight):
     font_Set = f'font-family: "{font}"; font-size: {font_size}px; font-weight:{font_weight};'
@@ -113,8 +112,6 @@ def save_data():
     except Exception as e:
         print(f"儲存資料時發生錯誤: {e}")
 
-
-
 def button_setup(text, connect_function):
     button = QtWidgets.QPushButton(text)
     button.clicked.connect(connect_function)  # 連結按鈕點擊事件
@@ -153,8 +150,6 @@ main_box = QtWidgets.QWidget(Form)
 main_box.setStyleSheet("background-color: rgb(213, 245, 227);")
 main_layout = QtWidgets.QVBoxLayout(main_box)
 main_layout.setSpacing(10)
-
-
 
 # 建立第一個子網格佈局及其容器(個人資料)
 grid1_box = QtWidgets.QWidget()
@@ -269,7 +264,6 @@ all_label_container.append(label_拍攝原因.text())  # 儲存標籤的參考�
 
 main_layout.addWidget(grid3_box)
 
-
 # 建立第四個子網格佈局及其容器(醫療資訊)
 grid4_box = QtWidgets.QWidget()
 grid4_box.setStyleSheet("background-color: rgb(214, 234, 248); border-radius: 30px;")
@@ -291,13 +285,10 @@ for i in range(len(text)):
 
 main_layout.addWidget(grid4_box)
 
-
-
 # 建立第五個子網格佈局及其容器(按鈕)
 grid5_box = QtWidgets.QWidget()
 grid5_layout = QtWidgets.QGridLayout(grid5_box)
 grid5_layout.setSpacing(15)
-
 
 button_關閉 = button_setup("關閉", close_window)
 

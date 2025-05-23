@@ -2,7 +2,6 @@ import sys
 from PyQt6 import QtWidgets, QtGui, QtCore
 from widger_helper import label_setup, entry_setup, date_setup, button_setup
 
-
 class LEDWindow(QtWidgets.QFrame):
     def __init__(self):
         super().__init__()
@@ -156,9 +155,6 @@ class LEDWindow(QtWidgets.QFrame):
         grid8_layout.addWidget(button_next, 0, 1, 1, 1)
         self.button_func['button_next'] = button_next
         
-        
-
-
         #==== Finally, add the grid layout to the main layout ====#
         self.main_layout.addWidget(grid1_box)
         self.main_layout.addWidget(combine_layout2_layout3_box)
@@ -169,7 +165,6 @@ class LEDWindow(QtWidgets.QFrame):
 
 
 from LED import ArduinoController
-
 
 class LEDPresenter:
     def __init__(self):
@@ -196,7 +191,6 @@ class LEDPresenter:
             self.led_controller.connect_serial(port)
             self.view.test_record['record'].append(f"連接到Arduino: {port}")
         
-
     def connect_LED_exit(self):
         self.view.button_func['state_circle'].setFixedSize(30,30)
         self.view.button_func['state_circle'].setStyleSheet("background-color: rgb(192, 192, 192); border-radius: 15px; border: 2px solid rgb(0, 0, 0);")
@@ -204,7 +198,6 @@ class LEDPresenter:
         self.view.test_record['record'].append("LED退出")
 
     def connect_LED_flicker_3times(self):
-        
         # self.count = 0
         # self.view.LED_flicker_3times_button.setEnabled(False)
         # self.update_LED_three_times()
@@ -248,7 +241,6 @@ class LEDPresenter:
 
     def hide(self):
         self.view.hide()
-
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)

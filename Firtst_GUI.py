@@ -4,8 +4,6 @@ import pandas as pd
 from widger_helper import label_setup, entry_setup, combobox_setup, date_setup, button_setup
 # 主視窗
 
-
-
 class FirstWindow(QtWidgets.QFrame):
     def __init__(self):
         super().__init__()
@@ -213,8 +211,6 @@ class FirstWindow(QtWidgets.QFrame):
     def show(self):
         self.setLayout(self.main_layout)
         super().show()  
-
-
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)

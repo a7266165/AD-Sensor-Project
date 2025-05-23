@@ -1,9 +1,7 @@
 # LED.py
-
 import serial
 import serial.tools.list_ports
 import time
-
 
 class ArduinoController():
     def __init__(self):
@@ -39,7 +37,6 @@ class ArduinoController():
         self.send_command("exit")
         self.stop_led()
         self.is_running = False
-
 
     def flash_led_3_times(self):
         if not self.is_running:

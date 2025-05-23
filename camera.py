@@ -2,8 +2,6 @@ import cv2
 import numpy as np
 import pyrealsense2 as rs
 
-
-
 class WebcamCamera:
     def __init__(self, camera_index=0):
         self.camera_index = camera_index
@@ -20,7 +18,6 @@ class WebcamCamera:
         if not ret:
             return None
         return frame
-
 
 class RealSenseCamera:
     def __init__(self, width=640, height=480, fps=30):
@@ -45,7 +42,6 @@ class RealSenseCamera:
             return None
         frame = np.asanyarray(color_frame.get_data())
         return frame
-
 
 class CameraDevice:
     def __init__(self, camera_type="Webcam"):
@@ -74,7 +70,6 @@ class CameraDevice:
 
     def release(self):
         self.camera.release()
-
 
 class VideoRecorder:
     def __init__(self, width=640, height=480, fps=30):
@@ -112,8 +107,6 @@ class VideoRecorder:
             return
         self.writer.write(frame)
         self.duration_count += 1
-
-    
 
 if __name__ == "__main__":
     camera = CameraDevice(camera_type="RealSense")  # Change to "Webcam" for webcam

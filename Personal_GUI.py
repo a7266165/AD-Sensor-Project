@@ -320,8 +320,6 @@ class PersonalWindow(QtWidgets.QFrame):
             
     #===== Finish =====#
 
-
-
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
     first_window = PersonalWindow()

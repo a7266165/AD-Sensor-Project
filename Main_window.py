@@ -14,7 +14,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.window2.connect_next_third_button(self.show_third_window)
         self.window2.connect_back_first_button(self.back_to_first_window)
         self.window3 = PhotographyWindow()
-        
 
     def show(self): # 程式開始時顯示第一個視窗
         self.window1.show()
@@ -30,7 +29,6 @@ class MainWindow(QtWidgets.QMainWindow):
     def back_to_first_window(self):
         self.window2.hide()
         self.window1.show()
-
 
 if __name__ == '__main__':
     app = QtWidgets.QApplication(sys.argv)
