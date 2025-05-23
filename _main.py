@@ -13,6 +13,8 @@ class ADRecordingAnalysisWindow(QtWidgets.QMainWindow):
 
     # 初始窗口
     def init(self): 
+        self.info_window.setFixedSize(600, 1000)
+        self.capture_window.setFixedSize(600, 1000)
         self.info_window.show()
     
     def capture_pics(self):

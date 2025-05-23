@@ -31,8 +31,6 @@ def date_setup(Form, font_Set):
     date.setKeyboardTracking(False)
     date.setCalendarPopup(True)  # 設定為彈出式日曆
     date.setStyleSheet(f'{font_Set}; background-color: rgb(255, 255, 255); border: 1px solid black; border-radius: 5px')
-    
-    
     return date
 
 def button_setup(text, connect_function):
