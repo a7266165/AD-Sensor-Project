@@ -3,7 +3,7 @@ from widger_helper import label_setup, entry_setup, button_setup
 import sys
 import cv2
 
-class PhotographyWindow(QtWidgets.QFrame):
+class CaptureWindow(QtWidgets.QFrame):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("拍攝視窗")
@@ -72,11 +72,11 @@ class PhotographyWindow(QtWidgets.QFrame):
             }
         """
         
-        # Previous button
-        self.prev_button = QtWidgets.QPushButton("Previous")
-        self.prev_button.setStyleSheet(button_style)
+        # # Previous button
+        # self.prev_button = QtWidgets.QPushButton("Previous")
+        # self.prev_button.setStyleSheet(button_style)
         # self.prev_button.setIcon(self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_ArrowBack))
-        self.button_layout.addWidget(self.prev_button)
+        # self.button_layout.addWidget(self.prev_button)
         
         # Spacer
         # self.button_layout.addStretch(1)
@@ -86,20 +86,20 @@ class PhotographyWindow(QtWidgets.QFrame):
         self.record_button.setStyleSheet(button_style.replace("#4a86e8", "#d54e4e"))
         self.button_layout.addWidget(self.record_button)
         
-        # Stop recording button
-        self.stop_button = QtWidgets.QPushButton("Stop Recording")
-        self.stop_button.setEnabled(False)  # Initially disabled
-        self.stop_button.setStyleSheet(button_style.replace("#4a86e8", "#4caf50"))
-        self.button_layout.addWidget(self.stop_button)
+        # # Stop recording button
+        # self.stop_button = QtWidgets.QPushButton("Stop Recording")
+        # self.stop_button.setEnabled(False)  # Initially disabled
+        # self.stop_button.setStyleSheet(button_style.replace("#4a86e8", "#4caf50"))
+        # self.button_layout.addWidget(self.stop_button)
         
         # Spacer
         # self.button_layout.addStretch(1)
         
-        # Next button
-        self.next_button = QtWidgets.QPushButton("Next")
-        self.next_button.setStyleSheet(button_style)
-        self.next_button.setIcon(self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_ArrowForward))
-        self.button_layout.addWidget(self.next_button)
+        # # Next button
+        # self.next_button = QtWidgets.QPushButton("Next")
+        # self.next_button.setStyleSheet(button_style)
+        # self.next_button.setIcon(self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_ArrowForward))
+        # self.button_layout.addWidget(self.next_button)
         
         # Add buttons frame to main layout
         self.main_layout.addWidget(self.button_frame)
@@ -119,21 +119,21 @@ if __name__ == '__main__':
     Form = PhotographyWindow()
     Form.show()
 
-    # from camera import CameraDevice
-    # camera = CameraDevice(camera_type="RealSense")  # Change to "RealSense" for RealSense camera
+    from camera import CameraDevice
+    camera = CameraDevice(camera_type="RealSense")  # Change to "RealSense" for RealSense camera
 
-    # while True:
-    #     frame = camera.get_frame()
-    #     if frame is None:
-    #         break
+    while True:
+        frame = camera.get_frame()
+        if frame is None:
+            break
 
-    #     # Display the frame
-    #     Form.update_frame(frame)
+        # Display the frame
+        Form.update_frame(frame)
         
-    #     key = cv2.waitKey(1) & 0xFF
-    #     # Break the loop on 'q' key press
-    #     if key == ord('q'):
-    #         break
+        key = cv2.waitKey(1) & 0xFF
+        # Break the loop on 'q' key press
+        if key == ord('q'):
+            break
         
 
     sys.exit(app.exec())

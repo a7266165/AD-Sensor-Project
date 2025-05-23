@@ -207,7 +207,6 @@ class FirstWindow(QtWidgets.QFrame):
             else:
                 pass
     
-
     def show(self):
         self.setLayout(self.main_layout)
         super().show()  

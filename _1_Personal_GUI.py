@@ -4,7 +4,7 @@ from PyQt6 import QtWidgets, QtCore
 import pandas as pd
 from widger_helper import label_setup, entry_setup, combobox_setup, date_setup, button_setup
 
-class PersonalWindow(QtWidgets.QFrame):
+class InfoWindow(QtWidgets.QFrame):
     def __init__(self):
         super().__init__()
         self.setWindowTitle('個人資料')
@@ -268,7 +268,7 @@ class PersonalWindow(QtWidgets.QFrame):
         self.main_layout.addWidget(scroll_area)
         #===== Finish =====#
     
-    def connect_next_second_button(self, function):
+    def next_button(self, function):
         self.widgets['button_next'].clicked.connect(function)
 
     def get_data(self):

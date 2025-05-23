@@ -1,6 +1,6 @@
 import sys
 from PyQt6 import QtWidgets, QtCore
-from window_setup import window_setup
+# from window_setup import window_setup
 import pandas as pd
 import os
 
@@ -141,7 +141,7 @@ def button_setup(text, connect_function):
 # 建立視窗
 app = QtWidgets.QApplication(sys.argv)
 Form = QtWidgets.QWidget()
-Form, window_width, window_height = window_setup(app, Form, "個人資料")
+# Form, window_width, window_height = window_setup(app, Form, "個人資料")
 Form.move(500, 60)  # 設定視窗位置
 # print(window_width, window_height)
 
