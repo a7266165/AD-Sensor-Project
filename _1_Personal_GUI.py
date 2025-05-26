@@ -10,315 +10,314 @@ from widger_helper import (
     button_setup,
 )
 
+# TODO: (1) 把樣式表移到外部檔案 (2) 使用迴圈自動產生 Q6DS 問卷 (3) 區塊化 UI 建構流程
+
+button_style = """
+QPushButton {
+    background-color: rgb(255, 255, 255);
+    color: rgb(0, 0, 0);
+    border: 1.5px solid black;
+    border-radius: 12px;
+    text-align: center;
+    font-family: "微軟正黑體";
+    font-size: 20px;
+    font-weight: bold;
+}
+QPushButton:hover {
+    background-color: rgb(174, 214, 241);
+}
+QPushButton:pressed {
+    background-color: rgb(30, 144, 255);
+    color: rgb(255, 255, 255);
+    border: 1.5px dashed black;
+}
+"""
 
 class InfoWindow(QtWidgets.QFrame):
     def __init__(self):
         super().__init__()
 
+        self.basic_infos = {}
         self.save_path_text = {}
         self.ui()
 
     def ui(self):
-        # 創建根佈局
-        self.root_layout = QtWidgets.QVBoxLayout(self)
+        # 設定根佈局(layer 0)
+        root_layout = QtWidgets.QVBoxLayout(self)
 
-        # 內容元件
+        # 創建 & 設定內容區塊(layer 1)
         content_widget = QtWidgets.QWidget()
-        layout_content = QtWidgets.QVBoxLayout(content_widget)
-        layout_content.setSpacing(10)
-        scroll_area = QtWidgets.QScrollArea()
-        scroll_area.setWidgetResizable(True)
-        scroll_area.setWidget(content_widget)
+        content_scroll_area = QtWidgets.QScrollArea() # 將內容元件包裝為可滾動
+        content_scroll_area.setWidgetResizable(True)
+        content_scroll_area.setWidget(content_widget)
+        content_layout = QtWidgets.QVBoxLayout(content_widget) # 內容區塊(layer 1)的排版
+        content_layout.setSpacing(10)
 
-        # 添加
-        self.root_layout.addWidget(scroll_area)
+        # 在根佈局(layer 0)添加內容區塊(layer 1)
+        root_layout.addWidget(content_scroll_area)
 
-        # # ===== Title =====#
-        # # 1. 設定標題區塊
-        # box_title = QtWidgets.QWidget()
-        # box_title.setStyleSheet(None)
-        # box_title.setFixedHeight(40)
+        # ===== 第一母區塊 - Title =====#
+        # 創建 & 設定標題區塊(layer 2)
+        title_content = QtWidgets.QLabel("表單")
+        title_content.setFixedHeight(40)  # 與原本 title_widget 一樣的高度
+        title_content.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)  # 文字置中
+        title_content.setStyleSheet(
+            "font-size: 24px;"
+            "font-family: 微軟正黑體;"
+            "font-weight: bold;"
+            "border: 0px;"
+        )
+        
 
-        # # 2. 設定標題文字與樣式
-        # content_title = QtWidgets.QLabel("表單")
-        # content_title.setStyleSheet(
-        #     "font-size: 24px; font-family: 微軟正黑體; font-weight: bold; border: 0px;"
-        # )
+        # 將標題區塊(layer 2)加入到內容區塊(layer 1)的排版
+        content_layout.addWidget(title_content)
+        # ===== 第一母區塊 - Title =====#
 
-        # # 3. 設定標題區塊的佈局
-        # self.layout_title = QtWidgets.QGridLayout(box_title)
-        # self.layout_title.addWidget(content_title, 0, 0)
-        # self.layout_title.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)  # 置中
-        # # ===== Title =====#
+        # ===== 第二母區塊 - basic information =====#
+        # 創建 & 設定基本資料背景區塊(layer 2)
+        basic_info_parent_widget = QtWidgets.QWidget()
+        basic_info_parent_widget.setStyleSheet(
+            "background-color: rgb(214, 234, 248); border-radius: 20px; border: 2px solid black; border-radius: 20px;"
+        )
+        basic_info_parent_widget_layout = QtWidgets.QVBoxLayout(
+            basic_info_parent_widget
+        )
+        basic_info_parent_widget_layout.setSpacing(10)
+        basic_info_parent_widget.setFixedHeight(200) # 調整基本資料背景區塊(layer 2)的大小
 
-        # # ===== basic information =====#
-        # # 1. 設定背景區塊
-        # parent_box_basic_information = QtWidgets.QWidget()
-        # parent_box_basic_information.setStyleSheet(
-        #     "background-color: rgb(214, 234, 248); border-radius: 20px; border : 2px solid black;"
-        # )
-        # self.layout_parent_box_basic_information = QtWidgets.QVBoxLayout(
-        #     parent_box_basic_information
-        # )
+        # 創建 & 設定基本資料標題區塊(layer 3)
+        label_base_info = QtWidgets.QLabel("基本資料")
+        label_base_info.setFixedHeight(20)  # 高度同原本 widget
+        label_base_info.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)  # 置中
+        label_base_info.setStyleSheet(
+            "font-size: 20px;"
+            "font-family: 微軟正黑體;"
+            "font-weight: bold;"
+            "border: 0px;"
+        )
 
-        # # 2. 設定基本資料母區塊
-        # box_basic_information = QtWidgets.QWidget()
-        # box_basic_information.setFixedHeight(40)
-        # box_basic_information.setStyleSheet("border: 0px;")
+        # 創建 & 設定基本資料填寫區塊(layer 3) 
+        basic_info_input_widget = QtWidgets.QWidget()
+        basic_info_input_widget.setStyleSheet("border: 0px;")
+        basic_info_input_widget_layout = QtWidgets.QGridLayout(basic_info_input_widget) # 基本資料填寫區塊(layer 3)的排版
+        basic_info_input_widget_layout.setSpacing(10)
 
-        # # 2-1 設定基本資料母區塊的佈局
-        # self.layout_title_basic_information = QtWidgets.QHBoxLayout(
-        #     box_basic_information
-        # )
-        # self.layout_title_basic_information.setContentsMargins(0, 0, 0, 0)
-        # self.layout_title_basic_information.setAlignment(
-        #     QtCore.Qt.AlignmentFlag.AlignCenter
-        # )
-        # self.layout_parent_box_basic_information.addWidget(box_basic_information)
+        # 建立 & 設定標籤標題、填寫區塊(layer 4) 
+        ID_label =QtWidgets.QLabel("編號 :")
+        ID_label.setStyleSheet("font-size: 16px; font-family: 微軟正黑體; font-weight: bold; border: 0px")
+        ID_input = QtWidgets.QLineEdit()
+        ID_input.setPlaceholderText("請輸入編號")  # 設定提示文字
+        ID_input.setStyleSheet("font-size: 16px; font-family: 微軟正黑體; background-color: rgb(255, 255, 255); font-weight: bold; border: 1px solid black; border-radius: 5px")  # 設定字型大小
+        
+        # 建立 & 設定拍攝日期標籤、填寫區塊(layer 4)
+        cap_date_label = QtWidgets.QLabel("拍攝日期 :")
+        cap_date_label.setStyleSheet("font-size: 16px; font-family: 微軟正黑體; font-weight: bold;" " border: 0px")
+        cap_date_input = QtWidgets.QDateEdit(self)  # 建立日期調整元件
+        cap_date_input.setDisplayFormat('yyyy-MM-dd')  # 設定顯示格式
+        cap_date_input.setDate(QtCore.QDate.currentDate())
+        cap_date_input.setKeyboardTracking(True)
+        cap_date_input.setCalendarPopup(True)  # 設定為彈出式日曆
+        cap_date_input.setStyleSheet(f'font-size: 16px; font-family: 微軟正黑體; font-weight: bold; background-color: rgb(255, 255, 255); border: 1px solid black; border-radius: 5px')
 
-        # # 2-2. 設定標題文字與樣式
-        # label_base_information = QtWidgets.QLabel("基本資料")
-        # label_base_information.setStyleSheet(
-        #     "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;"
-        # )
 
-        # # 2-3. 加入佈局，最後再加入到父佈局裡
-        # self.layout_title_basic_information.addWidget(label_base_information)
+        # 建立 & 設定性別標籤、填寫區塊(layer 4)
+        gender_label = QtWidgets.QLabel("生理性別：")
+        gender_label.setStyleSheet(
+            "font-size: 16px; font-family: 微軟正黑體; font-weight: bold; border: 0px;"
+        )
+        gender_input = QtWidgets.QWidget()
+        gender_input_layout =QtWidgets.QHBoxLayout(gender_input)
 
-        # box_content_basic_information = QtWidgets.QWidget()
-        # box_content_basic_information.setStyleSheet("border: 0px;")
-        # self.layout_content_box_basic_information = QtWidgets.QGridLayout(box_content_basic_information)
-        # self.layout_content_box_basic_information.setSpacing(15)
-        # label_ID = label_setup(
-        #     "編號 :", "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;"
-        # )
-        # self.layout_content_box_basic_information.addWidget(label_ID, 0, 0)
-        # entry_ID = entry_setup(
-        #     "請輸入編號", "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;"
-        # )
-        # self.layout_content_box_basic_information.addWidget(entry_ID, 0, 1)
-        # self.widgets["ID"] = entry_ID
+        # 建立 & 設定性別選擇按鈕(layer 5)
+        male_radio = QtWidgets.QRadioButton("男")
+        female_radio = QtWidgets.QRadioButton("女")
+        for rb in (male_radio, female_radio):
+            rb.setStyleSheet(
+                "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;"
+                
+            )
+            # 將layer 5 加入到性別填寫區塊layer 4的排版
+            gender_input_layout.addWidget(rb)
+        gender_group = QtWidgets.QButtonGroup(self) # 把RadioButton 加入 ButtonGroup，確保互斥
+        gender_group.addButton(male_radio, 1)
+        gender_group.addButton(female_radio, 2)
+   
+        # 建立生日標籤區塊(layer 4)
+        birthday_label = QtWidgets.QLabel("生日 :")
+        birthday_label.setStyleSheet(
+            "font-size: 16px; font-family: 微軟正黑體; font-weight: bold; border: 0px"
+        )
 
-        # label_gender = label_setup(
-        #     "性別 :", "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;"
-        # )
-        # self.layout_content_box_basic_information.addWidget(label_gender, 1, 0)
-        # gender = combobox_setup(
-        #     ["請選擇性別", "男", "女"],
-        #     "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;",
-        # )
-        # self.layout_content_box_basic_information.addWidget(gender, 1, 1)
-        # self.widgets["gender"] = gender
+        # 建立生日填寫區塊(layer 4)
+        birthday_input = QtWidgets.QDateEdit(self)  # 建立日期調整元件
+        birthday_input.setDisplayFormat('yyyy-MM-dd')  # 設定顯示格式
+        birthday_input.setDate(QtCore.QDate(1990, 1, 1))
+        birthday_input.setKeyboardTracking(True)
+        birthday_input.setCalendarPopup(True)  # 設定為彈出式日曆
+        birthday_input.setStyleSheet(f'font-size: 16px; font-family: 微軟正黑體; font-weight: bold; background-color: rgb(255, 255, 255); border: 1px solid black; border-radius: 5px')
 
-        # label_photography_year = label_setup(
-        #     "拍攝日期 :", "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;"
-        # )
-        # self.layout_content_box_basic_information.addWidget(label_photography_year, 0, 2)
-        # capture_pic_date = date_setup(
-        #     self, "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;"
-        # )
-        # self.layout_content_box_basic_information.addWidget(capture_pic_date, 0, 3)
-        # self.widgets["capture_pic_date"] = capture_pic_date
+        # 將基本資料填寫區塊(layer 3)的內容加入到 basic_infos 字典中
+        self.basic_infos["ID"] = ID_input
+        self.basic_infos["gender"] = gender_group
+        self.basic_infos["cap_date"] = cap_date_input
+        self.basic_infos["birthday"] = birthday_input
 
-        # label_birthday = label_setup(
-        #     "生日 :", "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;"
-        # )
-        # self.layout_content_box_basic_information.addWidget(label_birthday, 1, 2)
-        # birthday = date_setup(
-        #     self, "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;"
-        # )
-        # self.layout_content_box_basic_information.addWidget(birthday, 1, 3)
-        # self.widgets["birthday"] = birthday
+        # 將layer 4加入到基本資料填寫區塊layer 3的排版
+        basic_info_input_widget_layout.addWidget(gender_label, 1, 0)
+        basic_info_input_widget_layout.addWidget(gender_input, 1, 1)
+        basic_info_input_widget_layout.addWidget(birthday_label, 1, 2)
+        basic_info_input_widget_layout.addWidget(birthday_input, 1, 3)
+        basic_info_input_widget_layout.addWidget(ID_label, 0, 0)
+        basic_info_input_widget_layout.addWidget(ID_input, 0, 1)
+        basic_info_input_widget_layout.addWidget(cap_date_label, 0, 2)
+        basic_info_input_widget_layout.addWidget(cap_date_input, 0, 3)
 
-        # self.layout_parent_box_basic_information.addWidget(box_content_basic_information)
-        # ==== basic information ====#
+        # 標題區塊(layer 3)加入到基本資料背景區塊(layer 2)的排版
+        basic_info_parent_widget_layout.addWidget(label_base_info)
 
-        # # ===== 6QDS =====#
-        # title_6QDS = QtWidgets.QWidget()
-        # title_6QDS.setStyleSheet("border: 0px;")
-        # self.layout_title_6QDS = QtWidgets.QGridLayout(title_6QDS)
-        # self.layout_title_6QDS.setSpacing(15)
+        # basic_info_input_widget(layer 3)加入到基本資料背景區塊(layer 2)的排版
+        basic_info_parent_widget_layout.addWidget(basic_info_input_widget)
 
-        # label_6QDS = label_setup(
-        #     "6QDS", "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;"
-        # )
-        # self.layout_title_6QDS.addWidget(label_6QDS, 0, 0, 1, 4)
+        # 將基本資料背景區塊(layer 2)加入到內容區塊(layer 1)的排版
+        content_layout.addWidget(basic_info_parent_widget)
+        # ===== 第二母區塊 - basic information =====#
 
-        # box_6QDS = QtWidgets.QWidget()
-        # box_6QDS.setStyleSheet("border: 0px;")
-        # self.layout_box_6QDS = QtWidgets.QGridLayout(box_6QDS)
-        # self.layout_box_6QDS.setSpacing(15)
-        # q1 = label_setup(
-        #     "q1 :", "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;"
-        # )
-        # self.layout_box_6QDS.addWidget(q1, 0, 0)
-        # entry_q1 = entry_setup(
-        #     "評分", "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;"
-        # )
-        # self.layout_box_6QDS.addWidget(entry_q1, 0, 1)
-        # self.widgets["q1"] = entry_q1
-        # q2 = label_setup(
-        #     "q2 :", "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;"
-        # )
-        # self.layout_box_6QDS.addWidget(q2, 0, 2)
-        # entry_q2 = entry_setup(
-        #     "評分", "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;"
-        # )
-        # self.layout_box_6QDS.addWidget(entry_q2, 0, 3)
-        # self.widgets["q2"] = entry_q2
-        # q3 = label_setup(
-        #     "q3 :", "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;"
-        # )
-        # self.layout_box_6QDS.addWidget(q3, 0, 4)
-        # entry_q3 = entry_setup(
-        #     "評分", "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;"
-        # )
-        # self.layout_box_6QDS.addWidget(entry_q3, 0, 5)
-        # self.widgets["q3"] = entry_q3
-        # q4 = label_setup(
-        #     "q4 :", "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;"
-        # )
-        # self.layout_box_6QDS.addWidget(q4, 0, 6)
-        # entry_q4 = entry_setup(
-        #     "評分", "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;"
-        # )
-        # self.layout_box_6QDS.addWidget(entry_q4, 0, 7)
-        # self.widgets["q4"] = entry_q4
-        # q5 = label_setup(
-        #     "q5 :", "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;"
-        # )
-        # self.layout_box_6QDS.addWidget(q5, 0, 8)
-        # entry_q5 = entry_setup(
-        #     "評分", "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;"
-        # )
-        # self.layout_box_6QDS.addWidget(entry_q5, 0, 9)
-        # self.widgets["q5"] = entry_q5
-        # q6 = label_setup(
-        #     "q6 :", "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;"
-        # )
-        # self.layout_box_6QDS.addWidget(q6, 1, 0)
-        # entry_q6 = entry_setup(
-        #     "評分", "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;"
-        # )
-        # self.layout_box_6QDS.addWidget(entry_q6, 1, 1)
-        # self.widgets["q6"] = entry_q6
-        # q7 = label_setup(
-        #     "q7 :", "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;"
-        # )
-        # self.layout_box_6QDS.addWidget(q7, 1, 2)
-        # entry_q7 = entry_setup(
-        #     "評分", "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;"
-        # )
-        # self.layout_box_6QDS.addWidget(entry_q7, 1, 3)
-        # self.widgets["q7"] = entry_q7
-        # q8 = label_setup(
-        #     "q8 :", "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;"
-        # )
-        # self.layout_box_6QDS.addWidget(q8, 1, 4)
-        # entry_q8 = entry_setup(
-        #     "評分", "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;"
-        # )
-        # self.layout_box_6QDS.addWidget(entry_q8, 1, 5)
-        # self.widgets["q8"] = entry_q8
-        # q9 = label_setup(
-        #     "q9 :", "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;"
-        # )
-        # self.layout_box_6QDS.addWidget(q9, 1, 6)
-        # entry_q9 = entry_setup(
-        #     "評分", "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;"
-        # )
-        # self.layout_box_6QDS.addWidget(entry_q9, 1, 7)
-        # self.widgets["q9"] = entry_q9
-        # q10 = label_setup(
-        #     "q10 :", "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;"
-        # )
-        # self.layout_box_6QDS.addWidget(q10, 1, 8)
-        # entry_q10 = entry_setup(
-        #     "評分", "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;"
-        # )
-        # self.layout_box_6QDS.addWidget(entry_q10, 1, 9)
-        # self.widgets["q10"] = entry_q10
+        # ===== 第三母區塊 - 6QDS ===== #
+        # 創建 & 設定6QDS問卷區塊(layer 2)
+        Q6DS_parent_widget = QtWidgets.QWidget()
+        Q6DS_parent_widget.setStyleSheet("background-color: rgb(214, 234, 248); border: 2px solid black; border-radius: 20px;")
+        Q6DS_parent_widget.setFixedHeight(150) # 調整6QDS問卷區塊(layer 2)的大小
+        Q6DS_parent_widget_layout = QtWidgets.QGridLayout(Q6DS_parent_widget)
+        Q6DS_parent_widget_layout.setSpacing(10)
 
-        # parent_box_6QDS = QtWidgets.QWidget()
-        # parent_box_6QDS.setStyleSheet(
-        #     "background-color: rgb(214, 234, 248); border-radius: 20px; border : 2px solid black;"
-        # )
-        # self.layout_parent_box_6QDS = QtWidgets.QVBoxLayout(parent_box_6QDS)
-        # self.layout_parent_box_6QDS.addWidget(title_6QDS)
-        # self.layout_parent_box_6QDS.addWidget(box_6QDS)
-        # # ===== 6QDS =====#
+        # 創建 & 設定6QDS問卷標題區塊(layer 3)
+        Q6DS_label_widget = QtWidgets.QLabel("6QDS")
+        Q6DS_label_widget.setStyleSheet(f"font-size: 16px; font-family: 微軟正黑體; font-weight: bold; border: 0px")
+        Q6DS_label_widget.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)  # 文字置中
 
-        # # ===== savepath =====#
-        # title_save_path = QtWidgets.QWidget()
-        # title_save_path.setStyleSheet("border: 0px;")
-        # title_save_path.setFixedHeight(40)
-        # self.layout_title_save_path = QtWidgets.QGridLayout(title_save_path)
-        # label_save_path = label_setup(
-        #     "儲存路徑 :", "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;"
-        # )
-        # self.layout_title_save_path.addWidget(label_save_path, 0, 0)
+        # 創建 & 設定6QDS問卷填寫區塊(layer 3)
+        Q6DS_answer_widget = QtWidgets.QWidget()
+        Q6DS_answer_widget.setStyleSheet("border: 0px;")
+        Q6DS_answer_widget_layout = QtWidgets.QGridLayout(Q6DS_answer_widget)
+        Q6DS_answer_widget_layout.setSpacing(10)
+        
+        for i in range(1, 11):
+            # 創建 & 設定問卷問題標籤(layer 4)
+            question_label = QtWidgets.QLabel(f"q{i} :")
+            question_label.setStyleSheet(
+                "font-size: 16px; font-family: 微軟正黑體; font-weight: bold; border: 0px;"
+            )
+            Q6DS_answer_widget_layout.addWidget(question_label, 0, i - 1)
+            # 創建 & 設定問卷問題輸入框(layer 4)
+            question_input = QtWidgets.QLineEdit()
+            question_input.setPlaceholderText("評分")
+            question_input.setStyleSheet(
+                "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;"
+                "background-color: rgb(255, 255, 255); border: 1px solid black; border-radius: 5px;"
+                )
+            Q6DS_answer_widget_layout.addWidget(question_input, 1, i - 1)
 
-        # box_save_path = QtWidgets.QWidget()
-        # box_save_path.setStyleSheet("border: 0px;")
-        # self.layout_save_path = QtWidgets.QGridLayout(box_save_path)
-        # entry_save_path = entry_setup(
-        #     "", "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;"
-        # )
-        # entry_save_path.setReadOnly(True)
-        # self.layout_save_path.addWidget(entry_save_path, 1, 0, 1, 4)
-        # self.save_path_text["entry_save_path"] = entry_save_path
+            # TODO: 要把輸入值用另一個字典儲存
+            self.basic_infos[f"q{i}"] = question_input  # 將每個問題的輸入框加入到 basic_infos 字典中
 
-        # parent_box_save_path = QtWidgets.QWidget()
-        # parent_box_save_path.setStyleSheet(
-        #     "background-color: rgb(214, 234, 248); border-radius: 20px; border : 2px solid black;"
-        # )
-        # self.layout_parent_box_save_path = QtWidgets.QVBoxLayout(parent_box_save_path)
-        # self.layout_parent_box_save_path.addWidget(title_save_path)
-        # self.layout_parent_box_save_path.addWidget(box_save_path)
-        # # ===== savepath =====#
+        # 將6QDS問卷標題區塊(layer 3)加入到6QDS問卷區塊(layer 2)的排版
+        Q6DS_parent_widget_layout.addWidget(Q6DS_label_widget)
 
-        # # ===== buttons =====#
-        # box_buttons = QtWidgets.QWidget()
-        # # 6QDS.setFixedHeight(60)
-        # self.layout_box_buttons = QtWidgets.QGridLayout(box_buttons)
-        # self.layout_box_buttons.setSpacing(15)
+        # 將6QDS問卷填寫區塊(layer 3)加入到6QDS問卷區塊(layer 2)的排版
+        Q6DS_parent_widget_layout.addWidget(Q6DS_answer_widget)
 
-        # button_save_folder = button_setup("選擇儲存資料夾", self.open_save_folder)
-        # self.layout_box_buttons.addWidget(button_save_folder, 0, 0, 1, 2)
+        # 將6QDS問卷區塊(layer 2)加入到內容區塊(layer 1)的排版
+        content_layout.addWidget(Q6DS_parent_widget)
+        # ===== 第三母區塊 - 6QDS ===== #
 
-        # button_clear = button_setup("清除", self.clear_data)
-        # self.layout_box_buttons.addWidget(button_clear, 0, 3)
-        # self.widgets["button_clear"] = button_clear
+        # ===== 第四母區塊 - save path ===== #
+        # 創建 & 設定儲存路徑標題區塊(layer 2)
+        save_path_parent_widget = QtWidgets.QWidget()
+        save_path_parent_widget.setStyleSheet("background-color: rgb(214, 234, 248); border: 2px solid black; border-radius: 20px;")
+        save_path_parent_widget.setFixedHeight(80) # 調整儲存路徑區塊(layer 2)的大小
+        save_path_parent_widget_layout = QtWidgets.QGridLayout(save_path_parent_widget)
 
-        # button_save = button_setup("儲存", self.save_data)
-        # self.layout_box_buttons.addWidget(button_save, 1, 0, 1, 2)
-        # self.widgets["button_save"] = button_save
+        # 創建 & 設定儲存路徑標籤區塊(layer 3)
+        save_path_label = QtWidgets.QLabel("儲存路徑 :")
+        save_path_label.setStyleSheet(
+            "font-size: 16px; font-family: 微軟正黑體; font-weight: bold; border: 0px;"
+        )
 
-        # button_next = button_setup("下一步", lambda: print("下一步按鈕被點擊"))
-        # self.layout_box_buttons.addWidget(button_next, 1, 3)
-        # self.widgets["button_next"] = button_next
-        # ===== buttons =====#
+        # 創建 & 設定儲存路徑填寫區塊(layer 3)的輸入框
+        save_path_input = QtWidgets.QLineEdit()
+        save_path_input.setPlaceholderText("")
+        save_path_input.setStyleSheet(
+            "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;"
+            " background-color: rgb(255, 255, 255); border: 1px solid black; border-radius: 5px;"
+        )
+        save_path_input.setReadOnly(True)
 
-        # ===== scroll area =====#
+        # 將儲存路徑填寫區塊(layer 3)的內容加入到 save_path_text 字典中
+        self.save_path_text["save_path_input"] = save_path_input
 
-        # ===== scroll area =====#
+        # 將儲存路徑標籤區塊(layer 3)加入到儲存路徑標題區塊(layer 2)的排版
+        save_path_parent_widget_layout.addWidget(save_path_label, 0, 0)
 
-        # ==== Finally, add the grid layout to the main layout ====#
-        # layout_content.addWidget(box_title)
-        # layout_content.addWidget(parent_box_basic_information)
-        # layout_content.addWidget(parent_box_6QDS)
-        # layout_content.addWidget(parent_box_save_path)
-        # layout_content.addWidget(box_buttons)
-        # ===== Finish =====#
+        # 將儲存路徑填寫區塊(layer 3)加入到儲存路徑標題區塊(layer 2)的排版
+        save_path_parent_widget_layout.addWidget(save_path_input, 0, 1)
+
+        # 將儲存路徑標題區塊(layer 2)加入到內容區塊(layer 1)的排版
+        content_layout.addWidget(save_path_parent_widget)
+        # ===== 第四母區塊 - savepath =====#
+
+        # ===== 第五母區塊 - buttons =====#
+        # 創建 & 設定按鈕區塊(layer 2)
+        buttons_parent_widget = QtWidgets.QWidget()
+        buttons_parent_widget_layout = QtWidgets.QGridLayout(buttons_parent_widget)
+        buttons_parent_widget_layout.setSpacing(15)
+
+        # 創建 & 設定路徑選擇按鈕(layer 3)
+        button_save_folder = QtWidgets.QPushButton("選擇儲存資料夾")
+        button_save_folder.clicked.connect(self.open_save_folder)
+        button_save_folder.setStyleSheet(button_style)
+        buttons_parent_widget_layout.addWidget(button_save_folder, 0, 0)
+
+        # 創建 & 設定清除按鈕(layer 3)
+        button_clear = QtWidgets.QPushButton("清除")
+        button_clear.clicked.connect(self.clear_data)
+        button_clear.setStyleSheet(button_style)
+        buttons_parent_widget_layout.addWidget(button_clear, 0, 1)
+
+        # 創建 & 設定儲存按鈕(layer 3)
+        button_save = QtWidgets.QPushButton("儲存")
+        button_save.clicked.connect(self.save_data)
+        button_save.setStyleSheet(button_style)
+        buttons_parent_widget_layout.addWidget(button_save, 0, 2)
+
+        # 創建 & 設定下一步按鈕(layer 3)
+        button_next = QtWidgets.QPushButton("下一步")
+        button_next.clicked.connect(lambda: print("下一步按鈕被點擊"))
+        button_next.setStyleSheet(button_style)
+        buttons_parent_widget_layout.addWidget(button_next, 0, 3)
+
+        # 將按鈕區塊(layer 3)的內容加入到 basic_infos 字典中
+        self.basic_infos["button_clear"] = button_clear
+        self.basic_infos["button_save"] = button_save
+        self.basic_infos["button_next"] = button_next
+
+        # 將按鈕區塊(layer 2)加入到內容區塊(layer 1)的排版
+        content_layout.addWidget(buttons_parent_widget)
+        # ===== 第五母區塊 - buttons =====#
 
     def next_button(self, function):
-        self.widgets["button_next"].clicked.connect(function)
+        self.basic_infos["button_next"].clicked.connect(function)
 
     def get_data(self):
         data = {}
-        for key, widget in self.widgets.items():
+        for key, widget in self.basic_infos.items():
             if isinstance(widget, QtWidgets.QLineEdit):
                 data[key] = widget.text()
+            elif isinstance(widget, QtWidgets.QButtonGroup):
+                selected_button = widget.checkedButton()
+                if selected_button:
+                    data[key] = selected_button.text()
+                else:
+                    data[key] = None
             elif isinstance(widget, QtWidgets.QComboBox):
                 data[key] = widget.currentText()
             elif isinstance(widget, QtWidgets.QDateEdit):
@@ -332,10 +331,10 @@ class InfoWindow(QtWidgets.QFrame):
         if folder_path:
             print(f"選擇的儲存資料夾: {folder_path}")
             self.save_path_text["save_path"] = folder_path
-            self.save_path_text["entry_save_path"].setText(folder_path)
+            self.save_path_text["save_path_input"].setText(folder_path)
 
     def clear_data(self):
-        for key, widget in self.widgets.items():
+        for key, widget in self.basic_infos.items():
             if isinstance(widget, QtWidgets.QLineEdit):
                 widget.clear()
             elif isinstance(widget, QtWidgets.QComboBox):
@@ -360,6 +359,8 @@ class InfoWindow(QtWidgets.QFrame):
                 index=False,
                 encoding="utf-8-sig",
             )
+            print(df)
+
             print(f"檔案接續儲存在:{save_path}AD_patient_data.csv")
 
         else:
@@ -374,161 +375,9 @@ class InfoWindow(QtWidgets.QFrame):
 
     # ===== Finish =====#
 
-
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
     info_window = InfoWindow()
     info_window.setFixedSize(800, 600)
     info_window.show()
-    sys.exit(app.exec())
-
-    # import sys
-    # import os
-    # from PyQt6 import QtWidgets, QtCore
-    # import pandas as pd
-    # from widger_helper import (
-    #     label_setup,
-    #     entry_setup,
-    #     combobox_setup,
-    #     date_setup,
-    #     button_setup,
-    # )
-
-    # # 全域樣式常數
-    # STYLE_BOLD = "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;"
-    # TITLE_STYLE = "font-size: 24px; font-family: 微軟正黑體; font-weight: bold;"
-    # PANEL_STYLE = "background-color: rgb(214, 234, 248); border-radius: 20px; border: 2px solid black;"
-
-    # class Section(QtWidgets.QWidget):
-    #     def __init__(self, title: str, layout_content: QtWidgets.QLayout):
-    #         super().__init__()
-    #         self.setStyleSheet(PANEL_STYLE)
-    #         layout = QtWidgets.QVBoxLayout(self)
-    #         layout.addWidget(label_setup(title, STYLE_BOLD))
-    #         layout.addLayout(layout_content)
-
-    # class InfoWindow(QtWidgets.QFrame):
-    #     def __init__(self):
-    #         super().__init__()
-    #         self.widgets = {}
-    #         self.save_path = ""
-    #         self.init_ui()
-
-    #     def init_ui(self):
-    #         self.setStyleSheet("QFrame { padding: 10px; }")
-    #         root_layout = QtWidgets.QVBoxLayout(self)
-    #         root_layout.setSpacing(10)
-
-    #         # 標題
-    #         title = label_setup("表單", TITLE_STYLE)
-    #         title.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-    #         root_layout.addWidget(title)
-
-    #         # 基本資料區塊
-    #         form_layout = QtWidgets.QFormLayout()
-    #         fields = [
-    #             ("ID", entry_setup, ("請輸入編號", STYLE_BOLD)),
-    #             ("gender", combobox_setup, (("請選擇性別", "男", "女"), STYLE_BOLD)),
-    #             ("capture_pic_date", date_setup, (self, STYLE_BOLD)),
-    #             ("birthday", date_setup, (self, STYLE_BOLD)),
-    #         ]
-    #         for key, creator, args in fields:
-    #             widget = creator(*args)
-    #             self.widgets[key] = widget
-    #             label = label_setup(
-    #                 {
-    #                     "ID": "編號 :",
-    #                     "gender": "性別 :",
-    #                     "capture_pic_date": "拍攝日期 :",
-    #                     "birthday": "生日 :",
-    #                 }[key],
-    #                 STYLE_BOLD,
-    #             )
-    #             form_layout.addRow(label, widget)
-    #         root_layout.addWidget(Section("基本資料", form_layout))
-
-    #         # 6QDS 區塊
-    #         qds_layout = QtWidgets.QGridLayout()
-    #         for i in range(10):
-    #             row, col = divmod(i, 5)
-    #             key = f"q{i+1}"
-    #             lbl = label_setup(f"{key} :", STYLE_BOLD)
-    #             entry = entry_setup("評分", STYLE_BOLD)
-    #             self.widgets[key] = entry
-    #             qds_layout.addWidget(lbl, row, col * 2)
-    #             qds_layout.addWidget(entry, row, col * 2 + 1)
-    #         root_layout.addWidget(Section("6QDS", qds_layout))
-
-    #         # 儲存路徑區塊
-    #         path_layout = QtWidgets.QHBoxLayout()
-    #         path_widget = entry_setup("", STYLE_BOLD)
-    #         path_widget.setReadOnly(True)
-    #         self.widgets["save_path"] = path_widget
-    #         path_layout.addWidget(path_widget)
-    #         root_layout.addWidget(Section("儲存路徑", path_layout))
-
-    #         # 按鈕區塊
-    #         btn_layout = QtWidgets.QHBoxLayout()
-    #         buttons = [
-    #             ("選擇資料夾", self.open_save_folder),
-    #             ("清除", self.clear_data),
-    #             ("儲存", self.save_data),
-    #             ("下一步", None),
-    #         ]
-    #         for text, slot in buttons:
-    #             btn = button_setup(text, slot or (lambda: None))
-    #             if text == "下一步":
-    #                 self.widgets["button_next"] = btn
-    #             btn_layout.addWidget(btn)
-    #         root_layout.addLayout(btn_layout)
-
-    #     def next_button(self, func):
-    #         self.widgets["button_next"].clicked.connect(func)
-
-    #     def get_data(self) -> dict:
-    #         data = {}
-    #         for k, w in self.widgets.items():
-    #             if isinstance(w, QtWidgets.QLineEdit):
-    #                 data[k] = w.text()
-    #             elif isinstance(w, QtWidgets.QComboBox):
-    #                 data[k] = w.currentText()
-    #             elif isinstance(w, QtWidgets.QDateEdit):
-    #                 data[k] = w.date().toString("yyyy-MM-dd")
-    #         return data
-
-    #     def open_save_folder(self):
-    #         folder = QtWidgets.QFileDialog.getExistingDirectory(self)
-    #         if folder:
-    #             self.save_path = folder
-    #             self.widgets["save_path"].setText(folder)
-
-    #     def clear_data(self):
-    #         for w in self.widgets.values():
-    #             if isinstance(w, QtWidgets.QLineEdit):
-    #                 w.clear()
-    #             elif isinstance(w, QtWidgets.QComboBox):
-    #                 w.setCurrentIndex(0)
-    #             elif isinstance(w, QtWidgets.QDateEdit):
-    #                 w.setDate(QtCore.QDate.currentDate())
-
-    #     def save_data(self):
-    #         data = self.get_data()
-    #         if not self.save_path:
-    #             QtWidgets.QMessageBox.warning(self, "錯誤", "請先選擇儲存資料夾")
-    #             return
-    #         df = pd.DataFrame([data])
-    #         path = os.path.join(self.save_path, "AD_patient_data.csv")
-    #         df.to_csv(
-    #             path,
-    #             mode="a" if os.path.isfile(path) else "w",
-    #             header=not os.path.isfile(path),
-    #             index=False,
-    #             encoding="utf-8-sig",
-    #         )
-
-    # if __name__ == "__main__":
-    app = QtWidgets.QApplication(sys.argv)
-    win = InfoWindow()
-    win.setFixedSize(800, 1000)
-    win.show()
     sys.exit(app.exec())
