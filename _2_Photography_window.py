@@ -2,8 +2,9 @@ from PyQt6 import QtWidgets, QtCore, QtGui
 from widger_helper import label_setup, entry_setup, button_setup
 import sys
 import cv2
+from _cap_pics import CameraDevice
 
-class CaptureWindow(QtWidgets.QFrame):
+class CapWindow(QtWidgets.QFrame):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("拍攝視窗")
@@ -108,6 +109,7 @@ class CaptureWindow(QtWidgets.QFrame):
     def update_frame(self, frame):
         """Update the camera feed with the latest frame."""
         print("Updating frame...")
+        frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
         height, width, channel = frame.shape
         bytes_per_line = 3 * width
         q_image = QtGui.QImage(frame.data, width, height, bytes_per_line, QtGui.QImage.Format.Format_BGR888)
@@ -116,10 +118,10 @@ class CaptureWindow(QtWidgets.QFrame):
 if __name__ == '__main__':
 
     app = QtWidgets.QApplication(sys.argv)
-    Form = PhotographyWindow()
+    Form = CapWindow()
     Form.show()
 
-    from camera import CameraDevice
+
     camera = CameraDevice(camera_type="RealSense")  # Change to "RealSense" for RealSense camera
 
     while True:

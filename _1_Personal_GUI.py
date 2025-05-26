@@ -2,13 +2,6 @@ import sys
 import os
 from PyQt6 import QtWidgets, QtCore
 import pandas as pd
-from widger_helper import (
-    label_setup,
-    entry_setup,
-    combobox_setup,
-    date_setup,
-    button_setup,
-)
 
 # TODO: (1) 把樣式表移到外部檔案 (2) 使用迴圈自動產生 Q6DS 問卷 (3) 區塊化 UI 建構流程
 

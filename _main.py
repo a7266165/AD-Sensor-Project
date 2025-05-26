@@ -1,5 +1,5 @@
 from _1_Personal_GUI import InfoWindow
-from _2_Photography_window import CaptureWindow
+from _2_Photography_window import CapWindow
 from PyQt6 import QtWidgets
 import sys
 
@@ -10,7 +10,7 @@ class ADRecordingAnalysisWindow(QtWidgets.QMainWindow):
         super().__init__()
         self.info_window = InfoWindow()
         self.info_window.next_button(self.capture_pics)
-        self.capture_window = CaptureWindow()
+        self.capture_window = CapWindow()
 
     # 初始窗口
     def init(self):

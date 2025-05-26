@@ -20,12 +20,13 @@ class WebcamCamera:
         return frame
 
 class RealSenseCamera:
-    def __init__(self, width=640, height=480, fps=30):
+    def __init__(self, width=848, height=480, fps=60):
         self.pipeline = rs.pipeline()
         self.config = rs.config()
+        
         self.config.enable_stream(rs.stream.color, width, height, rs.format.bgr8, fps)
 
-    def reset(self, width=640, height=480, fps=30):
+    def reset(self, width=848, height=480, fps=60):
         self.stop()
         self.__init__(width, height, fps)
 
@@ -72,7 +73,7 @@ class CameraDevice:
         self.camera.release()
 
 class VideoRecorder:
-    def __init__(self, width=640, height=480, fps=30):
+    def __init__(self, width=848, height=480, fps=60):
         self.width = width
         self.height = height
         self.fps = fps
@@ -81,7 +82,7 @@ class VideoRecorder:
         self.fourcc = cv2.VideoWriter_fourcc(*'mp4v')
         self.duration_count = 0
 
-    def set_config(self, filename, width=640, height=480, fps=30, duration=None):
+    def set_config(self, filename, width=848, height=480, fps=60, duration=None):
         self.filename = filename
         self.fps = fps
         self.width = width
@@ -111,8 +112,9 @@ class VideoRecorder:
 if __name__ == "__main__":
     camera = CameraDevice(camera_type="RealSense")  # Change to "Webcam" for webcam
     video_recorder = VideoRecorder()
-    video_recorder.set_config(filename="output.mp4", width=640, height=480, fps=30, duration=3)  # Set the desired configuration
+    video_recorder.set_config(filename="output.mp4", width=848, height=480, fps=60, duration=3)  # Set the desired configuration
     print(video_recorder.is_recording)
+
     camera_types = ["Webcam", "RealSense"] 
     cam_idx = 0
     while True:
@@ -121,6 +123,7 @@ if __name__ == "__main__":
             break
 
         # Display the frame
+        frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
         cv2.imshow("Webcam", frame)
         if video_recorder.is_recording:
             # Record the frame
@@ -138,3 +141,5 @@ if __name__ == "__main__":
 
     camera.stop()
     cv2.destroyAllWindows()
+
+
