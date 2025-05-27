@@ -32,6 +32,7 @@
 
 from pages.patient_data_form import PatientDataFormWindow
 from pages.pic_caping_window import PicCapingWindow
+from pages.analysis_report_window import AnalysisReportWindow
 
 from PyQt6 import QtWidgets
 import sys
@@ -41,11 +42,11 @@ class ADRecordingAnalysisWindow(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
         self.info_window = PatientDataFormWindow()
-        # self.capture_window = PicCapingWindow()
+        self.capture_window = PicCapingWindow()
         # 綁定下一步按鈕，傳遞儲存路徑與編號
         self.info_window.next_button(self.capture_pics)
         self.info_window.resize(600, 600)
-        # self.capture_window.resize(1024, 768)
+        self.capture_window.resize(1024, 768)
 
     def init(self):
         self.info_window.show()
@@ -61,9 +62,9 @@ class ADRecordingAnalysisWindow(QtWidgets.QMainWindow):
             )
             return
         # 設定畫面2儲存路徑
-        # self.capture_window.set_save_folder(save_base, patient_id)
+        self.capture_window.set_save_folder(save_base, patient_id)
         self.info_window.hide()
-        # self.capture_window.show()
+        self.capture_window.show()
 
 
 if __name__ == "__main__":
