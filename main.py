@@ -31,7 +31,7 @@
 # main.py
 
 from pages.patient_data_form import PatientDataFormWindow
-from pages.pics_cap_window import PicCapingWindow
+from pages.pic_caping_window import PicCapingWindow
 
 from PyQt6 import QtWidgets
 import sys
