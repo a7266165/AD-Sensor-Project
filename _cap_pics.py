@@ -1,224 +1,137 @@
-# import cv2
-# import numpy as np
-# import pyrealsense2 as rs
-
-# class RealSenseCamera:
-#     def __init__(self, width=848, height=480, fps=60):
-#         self.pipeline = rs.pipeline()
-#         self.config = rs.config()
-        
-#         self.config.enable_stream(rs.stream.color, width, height, rs.format.bgr8, fps)
-
-#     def reset(self, width=848, height=480, fps=60):
-#         self.stop()
-#         self.__init__(width, height, fps)
-
-#     def start(self):
-#         self.pipeline.start(self.config)
-
-#     def stop(self):
-#         self.pipeline.stop()
-
-#     def get_frame(self):
-#         frames = self.pipeline.wait_for_frames()
-#         color_frame = frames.get_color_frame()
-#         if not color_frame:
-#             return None
-#         frame = np.asanyarray(color_frame.get_data())
-
-#          # 順時針 90°
-#         frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
-
-#         # 繪製需對齊的正方型
-#         x_center = int(frame.shape[1] / 2)
-#         y_center = int(frame.shape[0] / 2)
-#         square_size = 80
-#         cv2.rectangle(frame, (x_center-square_size, y_center-square_size), (x_center+square_size, y_center+square_size), (0, 255, 0), 2)
-
-#         return frame
-
-# class CameraDevice:
-#     def __init__(self, camera_type="RealSense"):
-#         self.camera_types = ["RealSense"]        
-#         self.camera_devices = [RealSenseCamera()]
-#         self.camera_type = camera_type
-#         self.camera = self.camera_devices[self.camera_types.index(camera_type)]
-#         self.camera.start()
-
-#     def switch_camera(self, camera_type):
-#         if camera_type not in self.camera_types:
-#             raise ValueError(f"Invalid camera type: {camera_type}")
-#         self.camera.stop()
-#         self.camera_type = camera_type
-#         self.camera = self.camera_devices[self.camera_types.index(camera_type)]
-#         self.camera.start()
-
-#     def start(self):
-#         self.camera.start()
-
-#     def stop(self):
-#         self.camera.stop()
-
-#     def get_frame(self):
-#         return self.camera.get_frame()
-
-#     def release(self):
-#         self.camera.release()
-
-# # class VideoRecorder:
-# #     def __init__(self, width=848, height=480, fps=60):
-# #         self.width = width
-# #         self.height = height
-# #         self.fps = fps
-# #         self.writer = None
-# #         self.is_recording = False
-# #         self.fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-# #         self.duration_count = 0
-
-# #     def set_config(self, filename, width=848, height=480, fps=60, duration=None):
-# #         self.filename = filename
-# #         self.fps = fps
-# #         self.width = width
-# #         self.height = height
-# #         self.duration = duration * fps if duration else None
-
-# #     def start(self):
-# #         self.writer = cv2.VideoWriter(
-# #             self.filename, self.fourcc, self.fps, (self.width, self.height)
-# #         )
-# #         self.is_recording = True
-# #         self.duration_count = 0
-
-# #     def stop(self):
-# #         self.writer.release()
-# #         self.is_recording = False
-
-# #     def record_frame(self, frame):
-# #         if frame is None:
-# #             raise ValueError("Frame is None.")
-# #         if self.duration is None or self.duration_count >= self.duration:
-# #             self.stop()
-# #             return
-# #         self.writer.write(frame)
-# #         self.duration_count += 1
-
-# if __name__ == "__main__":
-#     camera = CameraDevice(camera_type="RealSense")  # Change to "Webcam" for webcam
-#     # video_recorder = VideoRecorder()
-#     # video_recorder.set_config(filename="output.mp4", width=848, height=480, fps=60, duration=3)  # Set the desired configuration
-#     # print(video_recorder.is_recording)
-
-#     cam_idx = 0
-#     while True:
-#         frame = camera.get_frame()
-#         if frame is None:
-#             break
-
-#         # Display the frame
-#         cv2.imshow("demo", frame)
-#         # if video_recorder.is_recording:
-#         #     # Record the frame
-#         #     video_recorder.record_frame(frame)
-            
-#         key = cv2.waitKey(1) & 0xFF
-#         # Break the loop on 'q' key press
-#         if key == ord('q'):
-#             break
-
-#         # if key == ord('s'):
-#         #     video_recorder.start()
-
-#     camera.stop()
-#     cv2.destroyAllWindows()
-
 import cv2
 import numpy as np
 import pyrealsense2 as rs
 
-class RealSenseCamera:
+class RealSenseCamera(rs.pipeline):
     """
-    RealSense 顏色流攝影機封裝。
-    - __init__：設定解析度與更新率，但不自動啟動管線
-    - start()：啟動影像管線
-    - stop()：停止管線
-    - get_frame()：擷取並回傳處理後影格
-    - release()：釋放資源（同 stop）
+    繼承自 rs.pipeline，封裝 RealSense 顏色與深度流。
+    - __init__: 啟動前設定 color + depth 解析度與更新率
+    - start/stop: 啟/停 管線
+    - get_frame: 回傳 (color_bgr, depth_map) 兩張影像
     """
     def __init__(self, width=848, height=480, fps=60):
-        self.width = width
-        self.height = height
-        self.fps = fps
-        self._started = False
-
-        self.pipeline = rs.pipeline()
-        self.config = rs.config()
-        self.config.enable_stream(
-            rs.stream.color,
-            self.width,
-            self.height,
-            rs.format.bgr8,
-            self.fps
-        )
+        super().__init__()
+        cfg = rs.config()
+        # 同時啟用彩色與深度影像
+        cfg.enable_stream(rs.stream.color, width, height, rs.format.bgr8, fps)
+        cfg.enable_stream(rs.stream.depth, width, height, rs.format.z16, fps)
+        self._cfg = cfg
 
     def start(self):
-        """啟動 RealSense 影像管線。"""
-        if not self._started:
-            self.pipeline.start(self.config)
-            self._started = True
+        super().start(self._cfg)
 
     def stop(self):
-        """停止 RealSense 影像管線。"""
-        if self._started:
-            self.pipeline.stop()
-            self._started = False
+        super().stop()
 
     def get_frame(self):
         """
-        取得一張影格，順時針旋轉 90°，並於中心畫 80×80 綠色方框。
-        若讀不到影格，回傳 None。
+        回傳原始影像：
+        - color: BGR numpy 陣列
+        - depth: 深度值(毫米)的 numpy 陣列
+        若任一影像擷取失敗，回傳 (None, None)
         """
-        frames = self.pipeline.wait_for_frames()
-        color_frame = frames.get_color_frame()
-        if not color_frame:
-            return None
+        frames = self.wait_for_frames()
+        c = frames.get_color_frame()
+        d = frames.get_depth_frame()
+        if not c or not d:
+            return None, None
+        color = np.asanyarray(c.get_data())
+        depth = np.asanyarray(d.get_data())
+        return color, depth
 
-        frame = np.asanyarray(color_frame.get_data())
-        frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
+def detect_face_distance(face_cascade, color_img, depth_img, cx, cy, square_size):
+    """
+    範例自 user 提供:
+    - 偵測最大人臉、計算平均距離
+    - 若人臉中心落在中央方框內且距離適中，方框用紅色；否則綠色
+    回傳 have_face(bool)
+    """
+    have_face = False
+    gray = cv2.cvtColor(color_img, cv2.COLOR_BGR2GRAY)
+    faces = face_cascade.detectMultiScale(gray,
+        scaleFactor=1.03, minNeighbors=7, minSize=(100, 100))
+    if len(faces) > 1:
+        # 選最大人臉
+        faces = [max(faces, key=lambda f: f[2]*f[3])]
+    for (x, y, w, h) in faces:
+        # 臉中心
+        x_cent, y_cent = x + w//2, y + h//2
+        # 深度 ROI (米)
+        roi = depth_img[y:y+h, x:x+w] / 1000
+        mask = (roi>0.1) & (roi<1)
+        vals = roi[mask]
+        ave = float(np.mean(vals)) if vals.size>0 else 0
+        # 判斷顏色
+        color = (0,255,0)
+        if 0.35 <= ave <= 0.5 and \
+           cx-square_size < x_cent < cx+square_size and \
+           cy-square_size < y_cent < cy+square_size:
+            color = (0,0,255)
+            have_face = True
+        # 繪製臉框與文字
+        cv2.rectangle(color_img, (x,y), (x+w,y+h), color, 2)
+        cv2.putText(color_img,
+            f"Dist:{ave:.2f}m",
+            (x, y-10),
+            cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+    return have_face
 
-        h, w = frame.shape[:2]
-        cx, cy = w // 2, h // 2
-        size = 80
-        cv2.rectangle(
-            frame,
-            (cx - size, cy - size),
-            (cx + size, cy + size),
-            (0, 255, 0),
-            2
-        )
-        return frame
+def process_frame(color, depth, face_cascade, box_size=80):
+    """
+    - 對原始色彩影像做加工：
+      1. 旋轉 90°
+      2. 中央畫綠色方框
+      3. 偵測人臉並標示距離（紅/綠框）
+    - 回傳加工後影像
+    """
+    # 1. 旋轉
+    rotated = cv2.rotate(color, cv2.ROTATE_90_CLOCKWISE)
+    # 同步旋轉深度影像
+    depth_rot = cv2.rotate(depth, cv2.ROTATE_90_CLOCKWISE)
 
-    def release(self):
-        """釋放所有資源（等同 stop）。"""
-        self.stop()
+    h, w = rotated.shape[:2]
+    cx, cy = w//2, h//2
+    half = box_size
+    # 2. 中央對齊方框
+    cv2.rectangle(
+        rotated,
+        (cx-half, cy-half),
+        (cx+half, cy+half),
+        (0,255,0), 2
+    )
+    # 3.偵測與標示人臉距離
+    detect_face_distance(face_cascade, rotated, depth_rot, cx, cy, box_size)
+    return rotated
 
+def get_processed_frame(cam, face_cascade):
+    """主程式：載入 xml、擷取影像並呼叫 process_frame 顯示。"""
+    while True:
+        color, depth = cam.get_frame()
+        if color is None:
+            continue
+        processed_frame = process_frame(color, depth, face_cascade, box_size=80)
+        return processed_frame
 
-def main():
-    """主程式：顯示即時影像，按 q 鍵離開。"""
+# 測試用
+if __name__ == "__main__":
+    # 載入 Haar cascade xml (請確認路徑正確)
+    xml_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
+    face_cascade = cv2.CascadeClassifier(xml_path)
+
     cam = RealSenseCamera(width=848, height=480, fps=60)
     cam.start()
-
     try:
         while True:
-            frame = cam.get_frame()
-            if frame is not None:
-                cv2.imshow("RealSense Demo", frame)
+            color, depth = cam.get_frame()
+            if color is None:
+                continue
+            out = process_frame(color, depth, face_cascade, box_size=80)
+            cv2.imshow("Face & Distance", out)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
     finally:
-        cam.release()
+        cam.stop()
         cv2.destroyAllWindows()
 
 
-if __name__ == "__main__":
-    main()
 

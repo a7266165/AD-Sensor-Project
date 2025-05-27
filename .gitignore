@@ -4,3 +4,6 @@ __pycache__
 *.toml
 *.csv
 *.mp4
+*.png
+*.avi
+*.jpg
