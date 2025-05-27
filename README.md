@@ -1,4 +1,6 @@
 AD-Sensor-Project
+
+```
 ├── .gitignore
 ├── AD_patient_data.csv
 ├── arduino
@@ -14,3 +16,4 @@ AD-Sensor-Project
 ├── _2_Photography_window.py
 ├── _cap_pics.py
 └── _main.py
+```
