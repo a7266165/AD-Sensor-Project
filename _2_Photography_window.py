@@ -1,5 +1,4 @@
 from PyQt6 import QtWidgets, QtCore, QtGui
-from widger_helper import label_setup, entry_setup, button_setup
 import sys
 import cv2
 from _cap_pics import CameraDevice
@@ -12,49 +11,62 @@ class CapWindow(QtWidgets.QFrame):
         self.setStyleSheet("background-color: rgb(248, 249, 250);")
         self.is_recording = False
         
-        # Main layout
-        self.main_layout = QtWidgets.QVBoxLayout(self)
-        self.main_layout.setContentsMargins(20, 20, 20, 20)
-        self.main_layout.setSpacing(15)
+        # 設定根佈局 (layer 0)
+        root_layout = QtWidgets.QVBoxLayout(self)
+        root_layout.setContentsMargins(20, 20, 20, 20)
+        root_layout.setSpacing(15)
         
-        # Title
-        self.grid1_box = QtWidgets.QWidget()
-        self.grid1_box.setStyleSheet("")
-        self.grid1_layout = QtWidgets.QHBoxLayout(self.grid1_box)
-        self.title_label = label_setup("Camera", lambda: None)
-        self.title_label.setStyleSheet("font-size: 24px; font-weight: bold; color: rgb(0, 0, 0); border: 0px;")
-        self.title_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        self.grid1_layout.addWidget(self.title_label)
+        # ===== 第一母區塊 - title =====#
+        # 創建 & 設定標題區塊(layer 1)
+        title_parent_widget = QtWidgets.QWidget()
+        title_parent_widget.setStyleSheet("")
+        title_parent_widget_layout = QtWidgets.QHBoxLayout(title_parent_widget)
 
-        self.main_layout.addWidget(self.grid1_box)
+        # 創建 & 設定標題內容(layer 2)
+        title_content = QtWidgets.QLabel("Camera")
+        title_content.setStyleSheet("font-size: 24px; font-weight: bold; color: rgb(0, 0, 0); border: 0px;")
+        title_content.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+
+        # 將標題內容(layer 2)添加到標題區塊(layer 1)
+        title_parent_widget_layout.addWidget(title_content)
+
+        # 將標題區塊(layer 1)添加到主佈局(layer 0)
+        root_layout.addWidget(title_parent_widget)
+        # ===== 第一母區塊 - title =====#
         
-        # Camera view with frame
-        self.camera_frame = QtWidgets.QFrame()
-        self.camera_frame.setStyleSheet("background-color: #333333; border-radius: 8px;")
-        self.camera_frame.setFrameShape(QtWidgets.QFrame.Shape.StyledPanel)
-        self.camera_frame.setFrameShadow(QtWidgets.QFrame.Shadow.Raised)
+        # ===== 第二母區塊 - camera =====#
+        # 創建 & 設定相機畫面背景 (layer 1)
+        camera_frame = QtWidgets.QFrame()
+        camera_frame.setStyleSheet("background-color: #333333; border-radius: 8px;")
+        camera_frame.setFrameShape(QtWidgets.QFrame.Shape.StyledPanel)
+        camera_frame.setFrameShadow(QtWidgets.QFrame.Shadow.Raised)
+        camera_layout = QtWidgets.QVBoxLayout(camera_frame)
+        camera_layout.setContentsMargins(10, 10, 10, 10)
         
-        self.camera_layout = QtWidgets.QVBoxLayout(self.camera_frame)
-        self.camera_layout.setContentsMargins(10, 10, 10, 10)
+        # 創建 & 設定相機畫面區塊 (layer 2)
+        cap_pic_region = QtWidgets.QLabel()
+        cap_pic_region.setStyleSheet("background-color: black; border-radius: 4px;")
+        cap_pic_region.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        cap_pic_region.setMinimumHeight(500)
+
+        # 將相機畫面區塊(layer 2)添加到相機畫面背景 (layer 1)
+        camera_layout.addWidget(cap_pic_region)
         
-        self.camera_label = QtWidgets.QLabel()
-        self.camera_label.setStyleSheet("background-color: black; border-radius: 4px;")
-        self.camera_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        self.camera_label.setMinimumHeight(500)
-        self.camera_layout.addWidget(self.camera_label)
-        
-        self.main_layout.addWidget(self.camera_frame)
-        
-        # Control buttons layout
-        self.button_frame = QtWidgets.QFrame()
-        self.button_frame.setStyleSheet("background-color: #e0e0e0; border-radius: 8px;")
-        self.button_layout = QtWidgets.QHBoxLayout(self.button_frame)
-        self.button_layout.setContentsMargins(20, 15, 20, 15)
-        self.button_layout.setSpacing(15)
+        # 將相機畫面區塊(layer 1)添加到主佈局(layer 0)
+        root_layout.addWidget(camera_frame)
+        # ===== 第二母區塊 - camera =====#
+
+        # ===== 第三母區塊 - control buttons =====#
+        # 創建 & 設定按鈕區塊 (layer 1)
+        button_frame = QtWidgets.QFrame()
+        button_frame.setStyleSheet("background-color: #e0e0e0; border-radius: 8px;")
+        button_layout = QtWidgets.QHBoxLayout(button_frame)
+        button_layout.setContentsMargins(20, 15, 20, 15)
+        button_layout.setSpacing(15)
         
         button_style = """
             QPushButton {
-                background-color: #4a86e8;
+                background-color: #d54e4e;
                 color: white;
                 border-radius: 5px;
                 padding: 10px 15px;
@@ -73,69 +85,43 @@ class CapWindow(QtWidgets.QFrame):
             }
         """
         
-        # # Previous button
-        # self.prev_button = QtWidgets.QPushButton("Previous")
-        # self.prev_button.setStyleSheet(button_style)
-        # self.prev_button.setIcon(self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_ArrowBack))
-        # self.button_layout.addWidget(self.prev_button)
-        
-        # Spacer
-        # self.button_layout.addStretch(1)
-        
-        # Record button
-        self.record_button = QtWidgets.QPushButton("Start Recording")
-        self.record_button.setStyleSheet(button_style.replace("#4a86e8", "#d54e4e"))
-        self.button_layout.addWidget(self.record_button)
-        
-        # # Stop recording button
-        # self.stop_button = QtWidgets.QPushButton("Stop Recording")
-        # self.stop_button.setEnabled(False)  # Initially disabled
-        # self.stop_button.setStyleSheet(button_style.replace("#4a86e8", "#4caf50"))
-        # self.button_layout.addWidget(self.stop_button)
-        
-        # Spacer
-        # self.button_layout.addStretch(1)
-        
-        # # Next button
-        # self.next_button = QtWidgets.QPushButton("Next")
-        # self.next_button.setStyleSheet(button_style)
-        # self.next_button.setIcon(self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_ArrowForward))
-        # self.button_layout.addWidget(self.next_button)
-        
-        # Add buttons frame to main layout
-        self.main_layout.addWidget(self.button_frame)
+        # 創建 & 設定拍攝按鈕 (layer 2)
+        record_button = QtWidgets.QPushButton("Start Recording")
+        record_button.setStyleSheet(button_style)
 
-    
-    def update_frame(self, frame):
-        """Update the camera feed with the latest frame."""
-        print("Updating frame...")
-        frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
-        height, width, channel = frame.shape
-        bytes_per_line = 3 * width
-        q_image = QtGui.QImage(frame.data, width, height, bytes_per_line, QtGui.QImage.Format.Format_BGR888)
-        self.camera_label.setPixmap(QtGui.QPixmap.fromImage(q_image))
+        # 將拍攝按鈕 (layer 2) 添加到按鈕區塊 (layer 1)
+        button_layout.addWidget(record_button)
         
+        # 將按鈕區塊(layer 1)添加到主佈局(layer 0)
+        root_layout.addWidget(button_frame)
+        # ===== 第三母區塊 - control buttons ===== #
+
+        # 建立相機物件
+        camera = CameraDevice(camera_type="RealSense")
+
+        # 巢狀函式 - 顯示相機畫面
+        def show_frame():
+            frame = camera.get_frame()
+            if frame is None:
+                return
+            # 順時針 90°
+            frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
+            h, w, ch = frame.shape
+            bytes_per_line = ch * w
+            q_img = QtGui.QImage(
+                frame.data, w, h, bytes_per_line,
+                QtGui.QImage.Format.Format_BGR888
+            )
+            cap_pic_region.setPixmap(QtGui.QPixmap.fromImage(q_img))
+
+        # 用 QTimer 定時呼叫巢狀函式──也不用存成 self.timer
+        timer = QtCore.QTimer(self)  
+        timer.timeout.connect(show_frame)
+        timer.start(30)  # 多久呼叫一次（毫秒）
+
 if __name__ == '__main__':
 
     app = QtWidgets.QApplication(sys.argv)
-    Form = CapWindow()
-    Form.show()
-
-
-    camera = CameraDevice(camera_type="RealSense")  # Change to "RealSense" for RealSense camera
-
-    while True:
-        frame = camera.get_frame()
-        if frame is None:
-            break
-
-        # Display the frame
-        Form.update_frame(frame)
-        
-        key = cv2.waitKey(1) & 0xFF
-        # Break the loop on 'q' key press
-        if key == ord('q'):
-            break
-        
-
+    win = CapWindow()
+    win.show()
     sys.exit(app.exec())
