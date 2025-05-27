@@ -2,23 +2,6 @@ import cv2
 import numpy as np
 import pyrealsense2 as rs
 
-class WebcamCamera:
-    def __init__(self, camera_index=0):
-        self.camera_index = camera_index
-        self.capture = cv2.VideoCapture(camera_index)
-
-    def start(self):
-        self.capture.open(self.camera_index)
-
-    def stop(self):
-        self.capture.release()
-
-    def get_frame(self):
-        ret, frame = self.capture.read()
-        if not ret:
-            return None
-        return frame
-
 class RealSenseCamera:
     def __init__(self, width=848, height=480, fps=60):
         self.pipeline = rs.pipeline()
@@ -45,9 +28,9 @@ class RealSenseCamera:
         return frame
 
 class CameraDevice:
-    def __init__(self, camera_type="Webcam"):
-        self.camera_types = ["Webcam", "RealSense"]        
-        self.camera_devices = [WebcamCamera(), RealSenseCamera()]
+    def __init__(self, camera_type="RealSense"):
+        self.camera_types = ["RealSense"]        
+        self.camera_devices = [RealSenseCamera()]
         self.camera_type = camera_type
         self.camera = self.camera_devices[self.camera_types.index(camera_type)]
         self.camera.start()

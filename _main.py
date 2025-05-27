@@ -22,7 +22,6 @@ class ADRecordingAnalysisWindow(QtWidgets.QMainWindow):
         self.info_window.hide()
         self.capture_window.show()
 
-
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
     window = ADRecordingAnalysisWindow()

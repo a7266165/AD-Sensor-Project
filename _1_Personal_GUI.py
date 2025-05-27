@@ -3,7 +3,7 @@ import os
 from PyQt6 import QtWidgets, QtCore
 import pandas as pd
 
-# TODO: (1) 把樣式表移到外部檔案 (2) 使用迴圈自動產生 Q6DS 問卷 (3) 區塊化 UI 建構流程
+# TODO: (1) 把樣式表移到外部檔案 (2) 區塊化 UI 建構流程
 
 button_style = """
 QPushButton {
@@ -264,12 +264,6 @@ class InfoWindow(QtWidgets.QFrame):
         button_clear.setStyleSheet(button_style)
         buttons_parent_widget_layout.addWidget(button_clear, 0, 1)
 
-        # 創建 & 設定儲存按鈕(layer 2)
-        button_save = QtWidgets.QPushButton("儲存")
-        button_save.clicked.connect(self.save_data)
-        button_save.setStyleSheet(button_style)
-        buttons_parent_widget_layout.addWidget(button_save, 0, 2)
-
         # 創建 & 設定下一步按鈕(layer 2)
         button_next = QtWidgets.QPushButton("下一步")
         button_next.clicked.connect(lambda: print("下一步按鈕被點擊"))
@@ -278,16 +272,56 @@ class InfoWindow(QtWidgets.QFrame):
 
         # 將按鈕區塊(layer 2)的內容加入到 basic_infos 字典中
         self.basic_infos["button_clear"] = button_clear
-        self.basic_infos["button_save"] = button_save
         self.basic_infos["button_next"] = button_next
 
         # 將按鈕區塊(layer 1)加入到內容區塊(layer 0)的排版
         root_layout.addWidget(buttons_parent_widget)
         # ===== 第五母區塊 - buttons =====#
 
-    def next_button(self, function):
-        self.basic_infos["button_next"].clicked.connect(function)
+    # 屬性
+    def open_save_folder(self):
+        folder_path = QtWidgets.QFileDialog.getExistingDirectory()
+        if folder_path:
+            print(f"選擇的儲存資料夾: {folder_path}")
+            self.save_path_text["save_path"] = folder_path
+            self.save_path_text["save_path_input"].setText(folder_path)
 
+    def clear_data(self):
+        for key, widget in self.basic_infos.items():
+            if isinstance(widget, QtWidgets.QLineEdit):
+                widget.clear()
+            elif isinstance(widget, QtWidgets.QButtonGroup):
+                for button in widget.buttons():
+                    button.setChecked(False)
+            elif isinstance(widget, QtWidgets.QComboBox):
+                widget.setCurrentIndex(0)
+            elif isinstance(widget, QtWidgets.QDateEdit):
+                widget.setDate(QtCore.QDate.currentDate())
+            else:
+                pass
+
+    def next_button(self, callback):
+        """
+        綁定按鈕點擊：先驗證資料、再儲存，最後呼叫 callback
+        """
+        self._next_callback = callback
+        self.basic_infos["button_next"].clicked.connect(self._on_next)
+
+    def _on_next(self):
+        # 1. 資料驗證
+        data = self.get_data()
+        for key, value in data.items():
+            if value in (None, ""):
+                QtWidgets.QMessageBox.warning(self, "填寫不完整", f"請填寫: {key}")
+                return
+
+        # 2. 儲存資料
+        self.save_data()
+
+        # 3. 呼叫下一步回調
+        if callable(self._next_callback):
+            self._next_callback()
+            
     def get_data(self):
         data = {}
         for key, widget in self.basic_infos.items():
@@ -306,24 +340,6 @@ class InfoWindow(QtWidgets.QFrame):
             else:
                 continue
         return data
-
-    def open_save_folder(self):
-        folder_path = QtWidgets.QFileDialog.getExistingDirectory()
-        if folder_path:
-            print(f"選擇的儲存資料夾: {folder_path}")
-            self.save_path_text["save_path"] = folder_path
-            self.save_path_text["save_path_input"].setText(folder_path)
-
-    def clear_data(self):
-        for key, widget in self.basic_infos.items():
-            if isinstance(widget, QtWidgets.QLineEdit):
-                widget.clear()
-            elif isinstance(widget, QtWidgets.QComboBox):
-                widget.setCurrentIndex(0)
-            elif isinstance(widget, QtWidgets.QDateEdit):
-                widget.setDate(QtCore.QDate.currentDate())
-            else:
-                pass
 
     def save_data(self):
         data = self.get_data()
