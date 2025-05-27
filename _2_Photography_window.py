@@ -104,20 +104,28 @@ class CapWindow(QtWidgets.QFrame):
             frame = camera.get_frame()
             if frame is None:
                 return
-            # 順時針 90°
-            frame = cv2.rotate(frame, cv2.ROTATE_90_CLOCKWISE)
+
             h, w, ch = frame.shape
             bytes_per_line = ch * w
+
             q_img = QtGui.QImage(
                 frame.data, w, h, bytes_per_line,
                 QtGui.QImage.Format.Format_BGR888
             )
+
             cap_pic_region.setPixmap(QtGui.QPixmap.fromImage(q_img))
 
-        # 用 QTimer 定時呼叫巢狀函式──也不用存成 self.timer
+        # 用 QTimer 定時呼叫巢狀函式
         timer = QtCore.QTimer(self)  
         timer.timeout.connect(show_frame)
         timer.start(30)  # 多久呼叫一次（毫秒）
+
+    def get_frame(self):
+        """獲取畫面"""
+
+        frame = 
+
+        return self.camera.get_frame()
 
 if __name__ == '__main__':
 
