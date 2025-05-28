@@ -88,7 +88,7 @@ class PatientDataFormWindow(QtWidgets.QFrame):
         )  # 基本資料填寫區塊(layer 2)的排版
         basic_info_input_widget_layout.setSpacing(10)
 
-        # 建立 & 設定標籤標題、填寫區塊(layer 3)
+        # 建立 & 設定標籤標題、填寫區塊(layer 2)
         ID_label = QtWidgets.QLabel("編號 :")
         ID_label.setStyleSheet(
             "font-size: 16px; font-family: 微軟正黑體; font-weight: bold; border: 0px"
@@ -99,7 +99,7 @@ class PatientDataFormWindow(QtWidgets.QFrame):
             "font-size: 16px; font-family: 微軟正黑體; background-color: rgb(255, 255, 255); font-weight: bold; border: 1px solid black; border-radius: 5px"
         )  # 設定字型大小
 
-        # 建立 & 設定拍攝日期標籤、填寫區塊(layer 3)
+        # 建立 & 設定拍攝日期標籤、填寫區塊(layer 2)
         cap_date_label = QtWidgets.QLabel("拍攝日期 :")
         cap_date_label.setStyleSheet(
             "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;"
@@ -114,7 +114,7 @@ class PatientDataFormWindow(QtWidgets.QFrame):
             f"font-size: 16px; font-family: 微軟正黑體; font-weight: bold; background-color: rgb(255, 255, 255); border: 1px solid black; border-radius: 5px"
         )
 
-        # 建立 & 設定性別標籤、填寫區塊(layer 3)
+        # 建立 & 設定性別標籤、填寫區塊(layer 2)
         gender_label = QtWidgets.QLabel("生理性別：")
         gender_label.setStyleSheet(
             "font-size: 16px; font-family: 微軟正黑體; font-weight: bold; border: 0px;"
@@ -122,14 +122,14 @@ class PatientDataFormWindow(QtWidgets.QFrame):
         gender_input = QtWidgets.QWidget()
         gender_input_layout = QtWidgets.QHBoxLayout(gender_input)
 
-        # 建立 & 設定性別選擇按鈕(layer 4)
+        # 建立 & 設定性別選擇按鈕(layer 3)
         male_radio = QtWidgets.QRadioButton("男")
         female_radio = QtWidgets.QRadioButton("女")
         for rb in (male_radio, female_radio):
             rb.setStyleSheet(
                 "font-size: 16px; font-family: 微軟正黑體; font-weight: bold;"
             )
-            # 將layer 4 加入到性別填寫區塊layer 3的排版
+            # 將layer 3 加入到性別填寫區塊layer 2的排版
             gender_input_layout.addWidget(rb)
         gender_group = QtWidgets.QButtonGroup(
             self
@@ -137,13 +137,13 @@ class PatientDataFormWindow(QtWidgets.QFrame):
         gender_group.addButton(male_radio, 1)
         gender_group.addButton(female_radio, 2)
 
-        # 建立生日標籤區塊(layer 3)
+        # 建立生日標籤區塊(layer 2)
         birthday_label = QtWidgets.QLabel("生日 :")
         birthday_label.setStyleSheet(
             "font-size: 16px; font-family: 微軟正黑體; font-weight: bold; border: 0px"
         )
 
-        # 建立生日填寫區塊(layer 3)
+        # 建立生日填寫區塊(layer 2)
         birthday_input = QtWidgets.QDateEdit(self)  # 建立日期調整元件
         birthday_input.setDisplayFormat("yyyy-MM-dd")  # 設定顯示格式
         birthday_input.setDate(QtCore.QDate(1990, 1, 1))
@@ -159,7 +159,24 @@ class PatientDataFormWindow(QtWidgets.QFrame):
         self.basic_infos["cap_date"] = cap_date_input
         self.basic_infos["birthday"] = birthday_input
 
-        # 將layer 4加入到基本資料填寫區塊layer 3的排版
+        # 建立教育年數標籤區塊 (layer 2)
+        edu_label = QtWidgets.QLabel("教育年數：")
+        edu_label.setStyleSheet(
+            "font-size: 16px; font-family: 微軟正黑體; font-weight: bold; border: 0px"
+        )
+        # 建立教育年數填寫區塊 (layer 2)
+        edu_input = QtWidgets.QLineEdit()
+        edu_input.setPlaceholderText("請輸入教育年數")  # 設定提示文字
+        edu_input.setStyleSheet(
+            "font-size: 16px; font-family: 微軟正黑體; background-color: rgb(255,255,255); border: 1px solid black; border-radius: 5px"
+        )
+        # 新增到 basic_infos 字典
+        self.basic_infos["education_years"] = edu_input
+        # 插入到 grid (第2列)
+        basic_info_input_widget_layout.addWidget(edu_label, 2, 0)
+        basic_info_input_widget_layout.addWidget(edu_input, 2, 1)
+
+        # 將layer 3加入到基本資料填寫區塊layer 2的排版
         basic_info_input_widget_layout.addWidget(gender_label, 1, 0)
         basic_info_input_widget_layout.addWidget(gender_input, 1, 1)
         basic_info_input_widget_layout.addWidget(birthday_label, 1, 2)

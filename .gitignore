@@ -7,3 +7,5 @@ __pycache__
 *.png
 *.avi
 *.jpg
+*.xlsx
+!data/symmetry_all_pairs.csv

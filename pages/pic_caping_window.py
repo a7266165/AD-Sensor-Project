@@ -299,6 +299,13 @@
 #     win.show()
 #     sys.exit(app.exec())
 
+# 測試用 - 把母件夾路徑加入系統路徑
+import sys
+import os
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+sys.path.append(parent_dir)
+
 import cv2
 import sys
 import os
@@ -357,6 +364,7 @@ class LEDWorker(QtCore.QThread):
 
 
 class PicCapingWindow(QtWidgets.QFrame):
+    analysis_requested = QtCore.pyqtSignal() # 即時分析請求信號
     def __init__(self):
         super().__init__()
         self.setWindowTitle("拍攝視窗")
@@ -403,18 +411,18 @@ class PicCapingWindow(QtWidgets.QFrame):
         self.cam = RealSenseCamera(width=848, height=480, fps=60)
         self.cam.start()
 
-        # 根佈局
+        # 根佈局 layer 0
         root_layout = QtWidgets.QVBoxLayout(self)
         root_layout.setContentsMargins(20, 20, 20, 20)
         root_layout.setSpacing(15)
 
-        # 標題
+        # 標題 layer 1
         title = QtWidgets.QLabel("Camera")
         title.setStyleSheet("font-size: 24px; font-weight: bold; color: rgb(0,0,0);")
         title.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         root_layout.addWidget(title)
 
-        # 顯示畫面
+        # 顯示畫面 layer 1
         self.cap_pic_region = QtWidgets.QLabel()
         self.cap_pic_region.setStyleSheet(
             "background-color: black; border-radius: 4px;"
@@ -423,23 +431,40 @@ class PicCapingWindow(QtWidgets.QFrame):
         self.cap_pic_region.setMinimumHeight(500)
         root_layout.addWidget(self.cap_pic_region)
 
-        # 控制按鈕
+        # 控制按鈕 layer 1
         control_widget = QtWidgets.QWidget()
         control_layout = QtWidgets.QHBoxLayout(control_widget)
         control_layout.setSpacing(15)
+
+        # 創建控制按鈕區塊 layer 2
         self.record_button = QtWidgets.QPushButton("Start Recording")
         self.record_button.setStyleSheet(self.button_style)
         self.record_button.clicked.connect(self.on_record_button)
         control_layout.addWidget(self.record_button)
+
+        # 分析按鈕 layer 2
+        self.analysis_button = QtWidgets.QPushButton("即時分析")
+        self.analysis_button.setStyleSheet(self.button_style)
+        self.analysis_button.hide()
+        self.analysis_button.clicked.connect(self.on_analysis)
+        control_layout.addWidget(self.analysis_button)
+
+        # 結束拍攝按鈕 layer 2
+        self.end_button = QtWidgets.QPushButton("結束拍攝")
+        self.end_button.setStyleSheet(self.button_style)
+        self.end_button.hide()
+        self.end_button.clicked.connect(QtWidgets.QApplication.quit)
+        control_layout.addWidget(self.end_button)
+
         root_layout.addWidget(control_widget)
 
-        # 倒數計時
+        # 倒數計時 layer 1
         self.countdown_label = QtWidgets.QLabel("remaining time: -- s")
         self.countdown_label.setStyleSheet("font-size: 20px;")
         self.countdown_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         root_layout.addWidget(self.countdown_label)
 
-        # 路徑顯示
+        # 路徑顯示 layer 1
         self.path_label = QtWidgets.QLabel("save path: --")
         self.path_label.setStyleSheet("font-size: 16px; color: gray;")
         self.path_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
@@ -448,8 +473,8 @@ class PicCapingWindow(QtWidgets.QFrame):
         # 定時更新畫面
         self.frame_timer = QtCore.QTimer(self)
         self.frame_timer.timeout.connect(self.show_frame)
-        self.frame_timer.start(15)
-
+        self.frame_timer.start(100) # 約66 fps
+ 
         # 倒數計時器
         self.countdown_timer = QtCore.QTimer(self)
         self.countdown_timer.timeout.connect(self.update_countdown)
@@ -517,6 +542,19 @@ class PicCapingWindow(QtWidgets.QFrame):
         self.cap_pic_region.setPixmap(QtGui.QPixmap.fromImage(q_img))
         if self.is_recording:
             self.save_frame(frame)
+
+    def stop_record(self):
+        self.countdown_timer.stop()
+        self.is_recording = False
+        self.countdown_label.setText("錄製結束")
+        self.record_button.setEnabled(True)
+        # 顯示分析與結束按鈕
+        self.analysis_button.show()
+        self.end_button.show()
+
+    def on_analysis(self):
+        # 發射請求，主程式接收並切換到分析頁面
+         self.analysis_requested.emit()
 
 
 if __name__ == "__main__":
