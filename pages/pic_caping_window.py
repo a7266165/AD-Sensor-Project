@@ -314,7 +314,7 @@ import time
 import serial
 import serial.tools.list_ports
 from PyQt6 import QtWidgets, QtCore, QtGui
-from utils.cap_pic import RealSenseCamera, get_processed_frame
+from utils.cap_pic import RealSenseCamera, get_frames
 
 
 # Arduino control functions
@@ -491,11 +491,6 @@ class PicCapingWindow(QtWidgets.QFrame):
             # 沒有 LED，直接錄影
             self.start_record()
 
-    # def _after_led(self):
-    #     # LED 控制完成，開始錄影並恢復按鈕
-    #     self.start_record()
-    #     self.record_button.setEnabled(True)
-
     def set_save_folder(self, base_path: str, patient_id: str):
         folder = os.path.join(base_path, patient_id)
         os.makedirs(folder, exist_ok=True)
@@ -531,17 +526,17 @@ class PicCapingWindow(QtWidgets.QFrame):
         cv2.imwrite(filename, frame)
 
     def show_frame(self):
-        frame = get_processed_frame(self.cam, self.face_cascade)
-        if frame is None:
+        processed_frame, origin_frame = get_frames(self.cam, self.face_cascade)
+        if processed_frame is None:
             return
-        h, w, ch = frame.shape
+        h, w, ch = processed_frame.shape
         bytes_per_line = ch * w
         q_img = QtGui.QImage(
-            frame.data, w, h, bytes_per_line, QtGui.QImage.Format.Format_BGR888
+            processed_frame.data, w, h, bytes_per_line, QtGui.QImage.Format.Format_BGR888
         )
         self.cap_pic_region.setPixmap(QtGui.QPixmap.fromImage(q_img))
         if self.is_recording:
-            self.save_frame(frame)
+            self.save_frame(origin_frame)
 
     def stop_record(self):
         self.countdown_timer.stop()

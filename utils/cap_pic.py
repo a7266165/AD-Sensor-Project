@@ -85,32 +85,33 @@ def process_frame(color, depth, face_cascade, box_size=80):
     - 回傳加工後影像
     """
     # 1. 旋轉
-    rotated = cv2.rotate(color, cv2.ROTATE_90_CLOCKWISE)
+    origin_frame = cv2.rotate(color, cv2.ROTATE_90_CLOCKWISE)
+    marked_frame = origin_frame.copy()
     # 同步旋轉深度影像
     depth_rot = cv2.rotate(depth, cv2.ROTATE_90_CLOCKWISE)
 
-    h, w = rotated.shape[:2]
+    h, w = marked_frame.shape[:2]
     cx, cy = w//2, h//2
     half = box_size
     # 2. 中央對齊方框
     cv2.rectangle(
-        rotated,
+        marked_frame,
         (cx-half, cy-half),
         (cx+half, cy+half),
         (0,255,0), 2
     )
     # 3.偵測與標示人臉距離
-    detect_face_distance(face_cascade, rotated, depth_rot, cx, cy, box_size)
-    return rotated
+    detect_face_distance(face_cascade, marked_frame, depth_rot, cx, cy, box_size)
+    return marked_frame, origin_frame
 
-def get_processed_frame(cam, face_cascade):
+def get_frames(cam, face_cascade):
     """主程式：載入 xml、擷取影像並呼叫 process_frame 顯示。"""
     while True:
         color, depth = cam.get_frame()
         if color is None:
             continue
-        processed_frame = process_frame(color, depth, face_cascade, box_size=80)
-        return processed_frame
+        processed_frame, origin_frame = process_frame(color, depth, face_cascade, box_size=80)
+        return processed_frame, origin_frame
 
 # 測試用
 if __name__ == "__main__":

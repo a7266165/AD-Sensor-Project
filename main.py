@@ -43,7 +43,7 @@ class ADRecordingAnalysisWindow(QtWidgets.QMainWindow):
         self.info_window = PatientDataFormWindow()
         self.capture_window = PicCapingWindow()
         # 綁定下一步按鈕，傳遞儲存路徑與編號
-        self.info_window.next_button(self.capture_pics)
+        self.info_window.set_next_callback(self.capture_pics)
         self.info_window.resize(600, 600)
         self.capture_window.resize(1024, 768)
         # 綁定即時分析訊號
@@ -55,7 +55,7 @@ class ADRecordingAnalysisWindow(QtWidgets.QMainWindow):
     def capture_pics(self):
         # 取得畫面1的輸入與路徑
         data = self.info_window.get_data()
-        save_base = self.info_window.save_path_text.get("save_path")
+        save_base = self.info_window.save_path
         patient_id = data.get("ID")
         if not save_base or not patient_id:
             QtWidgets.QMessageBox.warning(
@@ -71,7 +71,7 @@ class ADRecordingAnalysisWindow(QtWidgets.QMainWindow):
         # 隱藏拍攝視窗
         self.capture_window.hide()
         # 建立並顯示分析結果視窗
-        save_base = self.info_window.save_path_text.get("save_path")
+        save_base = self.info_window.save_path
         patient_id = self.info_window.get_data().get("ID")
         # CSV 與模型路徑
         csv_path = os.path.join(save_base, "AD_patient_data.csv")
