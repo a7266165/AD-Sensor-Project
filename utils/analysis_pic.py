@@ -3,21 +3,38 @@ import cv2
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from matplotlib.collections import LineCollection
 
-FACEMESH_MID_LINE = [(10, 151), (151, 9), (9, 8), (8, 168), 
-                    (168, 6), (6, 197), (197, 195), (195, 5), 
-                    (5, 4), (4, 1), (1, 19), (19, 94), (94, 2)]
+FACEMESH_MID_LINE = [
+    (10, 151),
+    (151, 9),
+    (9, 8),
+    (8, 168),
+    (168, 6),
+    (6, 197),
+    (197, 195),
+    (195, 5),
+    (5, 4),
+    (4, 1),
+    (1, 19),
+    (19, 94),
+    (94, 2),
+]
 
-#-----------1. 篩選相片-----------#
 
+# -----------1. 篩選相片-----------#
 def get_point(results, index, width, height):
     """將 landmark 轉換為經過寬高縮放的二維點"""
     pt = results.multi_face_landmarks[0].landmark[index]
     return np.array([pt.x * width, pt.y * height])
 
+
 def angle_between(v1, v2):
     """計算兩向量之間的夾角（單位：度）"""
-    return np.degrees(np.arccos(np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))))
+    return np.degrees(
+        np.arccos(np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2)))
+    )
+
 
 def calc_intermediate_angle_sum(results, height, width):
     """
@@ -29,16 +46,20 @@ def calc_intermediate_angle_sum(results, height, width):
     angle2 = angle_between(p3 - p2, p4 - p3)
     return angle1 + angle2
 
+
 def mid_line_angle_all_points(results, height, width):
     """
     計算人臉中軸線各段的角度，並回傳平均角度
     """
     angles = []
     for i, j in FACEMESH_MID_LINE:
-        p1, p2 = get_point(results, i, width, height), get_point(results, j, width, height)
+        p1, p2 = get_point(results, i, width, height), get_point(
+            results, j, width, height
+        )
         # 利用 arctan2 直接計算角度，結果會介於 -180 到 180 度之間
         angles.append(np.degrees(np.arctan2(p2[0] - p1[0], p2[1] - p1[1])))
     return sum(angles) / len(angles)
+
 
 def rotate_image(face_img_path, face_mesh):
     """
@@ -52,6 +73,7 @@ def rotate_image(face_img_path, face_mesh):
     M = cv2.getRotationMatrix2D(center, -angle, 1.0)
     return cv2.warpAffine(image, M, (width, height))
 
+
 def align_and_select_faces(face_pic_folder, face_mesh):
     """
     遍歷資料夾中所有 jpg 圖片，選取夾角總和最小的 10 張（較正面），
@@ -59,7 +81,7 @@ def align_and_select_faces(face_pic_folder, face_mesh):
     """
     angle_dict = {}
     for file in os.listdir(face_pic_folder):
-        if not file.endswith('.jpg'):
+        if not file.endswith(".jpg"):
             continue
         path = os.path.join(face_pic_folder, file)
         image = cv2.imread(path)
@@ -70,34 +92,36 @@ def align_and_select_faces(face_pic_folder, face_mesh):
         if not results.multi_face_landmarks:
             continue
         angle_dict[file] = calc_intermediate_angle_sum(results, height, width)
-    
+
     # 選出夾角總和最小的 10 張圖（代表正對相機）
     selected_files = sorted(angle_dict, key=lambda x: angle_dict[x])[:10]
-    
+
     # 將選取的圖片轉正並回傳轉正後的圖片列表
-    rotated_images = [rotate_image(os.path.join(face_pic_folder, file), face_mesh) 
-                      for file in selected_files]
+    rotated_images = [
+        rotate_image(os.path.join(face_pic_folder, file), face_mesh)
+        for file in selected_files
+    ]
     return rotated_images
 
-#-----------2. 特徵正規化-----------#
 
+# -----------2. 特徵正規化-----------#
 # 將特徵點座標正規化
 def extract_normalized_landmark_coordinates(rotated_face_images, face_mesh):
     """
     輸入十張已經轉正的人臉圖片，
     將每張圖片的特徵點座標正規化，
-    回傳一個 numpy 陣列，形狀為 (N, 3, 468)
-    其中 N 為圖片數量（預期為 10），3 為 x, y, z 座標，468 為標點數量
+    回傳一個 numpy 陣列，形狀為 (1, 3, 468)
+    其中 3 為 x, y, z 座標，468 為標點數量
     """
     landmarks_all = []
-    
+
     for image in rotated_face_images:
         height, width = image.shape[:2]
         results = face_mesh.process(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
         if not results.multi_face_landmarks:
             continue  # 若未偵測到臉部，跳過此圖片
         landmarks = results.multi_face_landmarks[0].landmark
-        
+
         # 取出臉部最左邊和最上面的點，用以做座標平移
         left_x = landmarks[234].x * width
         top_y = landmarks[10].y * height
@@ -115,15 +139,34 @@ def extract_normalized_landmark_coordinates(rotated_face_images, face_mesh):
         pts = pts * scale_factor  # 進行縮放
         pts = pts.T  # 轉置成 (2, 468)，每一列分別為 x, y, z 座標
         landmarks_all.append(pts)
-    
+
     landmarks_all = np.array(landmarks_all)  # 最終 shape 為 (N, 2, 468)
     # 將landmarks_all取平均，變成(1, 2, 468)
     landmarks_all = np.mean(landmarks_all, axis=0).reshape(1, 2, 468)
 
+    # 新增z軸座標（設為0）以符合(1, 3, 468)的形狀
+    z_coords = np.zeros((1, 1, 468))
+    landmarks_all = np.concatenate([landmarks_all, z_coords], axis=1)
+
     return landmarks_all
 
-#-----------3. 取出特定點的座標-----------#
 
+def analyze_face_landmarks(save_pic_folder, face_mesh):
+    """分析臉部特徵點"""
+    try:
+        imgs = align_and_select_faces(save_pic_folder, face_mesh)
+        if not imgs:
+            return None
+
+        landmarks = extract_normalized_landmark_coordinates(imgs, face_mesh)
+        return landmarks
+
+    except Exception as e:
+        print(f"臉部特徵點分析錯誤: {str(e)}")
+        return None
+
+
+# -----------3. 取出特定點的座標-----------#
 def get_specific_landmark_coords(face_img_landmark, specific_points):
     """
     取出特定特徵點的座標，並以 DataFrame 回傳（僅取 x 與 y 軸）
@@ -138,278 +181,402 @@ def get_specific_landmark_coords(face_img_landmark, specific_points):
     row = {}
     # 取得指定點的 x 座標
     for p in specific_points:
-        row[f'x{p}'] = face_img_landmark[0, 0, p]
+        row[f"x{p}"] = face_img_landmark[0, 0, p]
     # 取得指定點的 y 座標
     for p in specific_points:
-        row[f'y{p}'] = face_img_landmark[0, 1, p]
-    
+        row[f"y{p}"] = face_img_landmark[0, 1, p]
+
     df = pd.DataFrame([row])
     # 依指定順序排列欄位：先 x 座標，再 y 座標
-    x_cols = [f'x{p}' for p in specific_points]
-    y_cols = [f'y{p}' for p in specific_points]
+    x_cols = [f"x{p}" for p in specific_points]
+    y_cols = [f"y{p}" for p in specific_points]
     df = df[x_cols + y_cols]
     return df
 
-#-----------4. 計算差值-----------#
 
-def calculate_difference(left_point, right_point, power_num):
+# -----------4. 對稱性計算-----------#
+def _parse_idxs(s):
+    """解析索引字串"""
+    return list(map(int, s.split(",")))
+
+
+def _line_len(x, y, idxs):
+    """計算線段長度"""
+    i, j = idxs
+    return np.hypot(x[i] - x[j], y[i] - y[j])
+
+
+def _tri_area(x, y, idxs):
+    """計算三角形面積"""
+    i, j, k = idxs
+    x1, y1 = x[i], y[i]
+    x2, y2 = x[j], y[j]
+    x3, y3 = x[k], y[k]
+    return abs((x1 * (y2 - y3) + x2 * (y3 - y1) + x3 * (y1 - y2)) / 2)
+
+
+def calculate_symmetry_metrics(landmarks, symmetry_csv_path):
     """
-    計算左右對稱特徵點在 x 與 y 軸上的差值（取差值的 power 次方），並回傳差值 DataFrame，
-    不包含 image_name 資料。
-    
-    輸入:
-        left_point: DataFrame，欄位依序為 x 座標與 y 座標 (例如 x1, x2, ..., y1, y2, ...)
-        right_point: DataFrame，欄位格式與 left_point 相同
-        power_num: 指數次方的數值
-    輸出:
-        diff_cubic: DataFrame，包含左右對稱特徵點在 x 與 y 軸上的差值的 power 次方
+    計算對稱性指標
+
+    Args:
+        landmarks: numpy array, shape (1, 3, 468)
+        symmetry_csv_path: 對稱配對CSV檔案路徑
+
+    Returns:
+        dict: 包含四個對稱性指標的字典
     """
-    num_pairs = len(left_point.columns) // 2  # 此時左側欄位數為 num_pairs, 右側欄位數同理（x 與 y 各有一組）
-    # 建立欄位名稱
-    columns_x = [f'x_pair_{i+1}' for i in range(num_pairs)]
-    columns_y = [f'y_pair_{i+1}' for i in range(num_pairs)]
-    
-    diff_cubic_x = pd.DataFrame(columns=columns_x)
-    diff_cubic_y = pd.DataFrame(columns=columns_y)
-    
-    for i in range(num_pairs):
-        left_x = left_point.iloc[:, i]
-        right_x = right_point.iloc[:, i]
-        left_y = left_point.iloc[:, i + num_pairs]
-        right_y = right_point.iloc[:, i + num_pairs]
+    try:
+        # 讀取對稱配對資料
+        df_pairs = pd.read_csv(symmetry_csv_path)
 
-        # 計算左右對稱點到中軸 (x = 250) 的距離差
-        x_diff_values = abs(abs(250 - left_x) - abs(250 - right_x))
-        # 計算左右對稱點在 y 軸的距離差
-        y_diff_values = abs(abs(left_y) - abs(right_y))
-        
-        diff_cubic_x[columns_x[i]] = x_diff_values ** power_num
-        diff_cubic_y[columns_y[i]] = y_diff_values ** power_num
+        # 拆分三種類型的配對
+        df_pts = df_pairs[df_pairs["pair_type"].str.startswith("point")].copy()
+        df_lines = df_pairs[df_pairs["pair_type"].str.startswith("line")].copy()
+        df_tri = df_pairs[df_pairs["pair_type"].str.startswith("triangle")].copy()
 
-    diff_cubic = pd.concat([diff_cubic_x, diff_cubic_y], axis=1)
+        # 解析線段和三角形的索引
+        df_lines["left_idx"] = df_lines["left"].apply(_parse_idxs)
+        df_lines["right_idx"] = df_lines["right"].apply(_parse_idxs)
+        df_tri["left_idx"] = df_tri["left"].apply(_parse_idxs)
+        df_tri["right_idx"] = df_tri["right"].apply(_parse_idxs)
 
-    return diff_cubic
+        # 從landmarks提取x, y座標
+        # landmarks shape: (1, 3, 468) - [batch, coordinates(x,y,z), points]
+        x_coords = landmarks[0, 0, :]  # 所有點的x座標
+        y_coords = landmarks[0, 1, :]  # 所有點的y座標
 
-#-----------5. 繪圖-----------#
+        # 建立座標字典
+        x = {i: x_coords[i] for i in range(468)}
+        y = {i: y_coords[i] for i in range(468)}
+
+        # 計算基準線
+        baseline_x = abs(x[234] - x[454])
+        baseline_y = abs(y[10] - y[152])
+
+        # 避免除以零
+        if baseline_x == 0:
+            baseline_x = 1
+        if baseline_y == 0:
+            baseline_y = 1
+
+        # 初始化累加器
+        total_pt_x = 0.0
+        total_pt_y = 0.0
+        total_line = 0.0
+        total_tri = 0.0
+
+        # 計算點對稱 X 差值
+        for _, r in df_pts.iterrows():
+            idx_l = int(r["left"])
+            idx_r = int(r["right"])
+            if idx_l < 468 and idx_r < 468:  # 確保索引有效
+                diff_x = abs(abs(x[idx_l] - 250) - abs(x[idx_r] - 250)) / baseline_x
+                total_pt_x += diff_x
+
+        # 計算點對稱 Y 差值
+        for _, r in df_pts.iterrows():
+            idx_l = int(r["left"])
+            idx_r = int(r["right"])
+            if idx_l < 468 and idx_r < 468:  # 確保索引有效
+                diff_y = abs(y[idx_l] - y[idx_r]) / baseline_y
+                total_pt_y += diff_y
+
+        # 計算線段對稱差值
+        for _, r in df_lines.iterrows():
+            # 檢查所有索引是否有效
+            if all(idx < 468 for idx in r["left_idx"]) and all(
+                idx < 468 for idx in r["right_idx"]
+            ):
+                ld = _line_len(x, y, r["left_idx"])
+                rd = _line_len(x, y, r["right_idx"])
+                if ld + rd > 0:  # 避免除以零
+                    diff_line = abs(ld - rd) / (ld + rd)
+                    total_line += diff_line
+
+        # 計算三角形面積對稱差值
+        for _, r in df_tri.iterrows():
+            # 檢查所有索引是否有效
+            if all(idx < 468 for idx in r["left_idx"]) and all(
+                idx < 468 for idx in r["right_idx"]
+            ):
+                la = _tri_area(x, y, r["left_idx"])
+                ra = _tri_area(x, y, r["right_idx"])
+                if la + ra > 0:  # 避免除以零
+                    diff_tri = abs(la - ra) / (la + ra)
+                    total_tri += diff_tri
+
+        return {
+            "sum_point_x_diff": total_pt_x,
+            "sum_point_y_diff": total_pt_y,
+            "sum_line_diff": total_line,
+            "sum_triangle_area_diff": total_tri,
+        }
+
+    except Exception as e:
+        print(f"計算對稱性指標錯誤: {str(e)}")
+        return None
 
 
-#-----------法一 z-score-----------#
-
-def load_stats_df(eye_stats_path, face_oval_stats_path, mouth_stats_path, nose_stats_path):
+# -----------5. 繪圖-----------#
+def get_original_face_with_landmarks(
+    face_pic_folder, face_mesh, landmarks, symmetry_csv_path=None
+):
     """
-    讀取各部位的平均與標準差 DataFrame
-    """
-    eye_stats_df = pd.read_csv(eye_stats_path, index_col='image_name')
-    face_oval_stats_df = pd.read_csv(face_oval_stats_path, index_col='image_name')
-    mouth_stats_df = pd.read_csv(mouth_stats_path, index_col='image_name')
-    nose_stats_df = pd.read_csv(nose_stats_path, index_col='image_name')
-    return eye_stats_df, face_oval_stats_df, mouth_stats_df, nose_stats_df
+    獲取帶有特徵點標記的原始人臉圖片（只截取人臉部分）
 
-def calculate_z_score(diffs, stats_df):
-    """
-    計算 z-score
-    """
-    common_columns = diffs.columns.intersection(stats_df.columns)
-    z_score_df = (diffs[common_columns] - stats_df.loc['Average', common_columns]) / stats_df.loc['Standard Deviation', common_columns]
-    return z_score_df
+    Args:
+        face_pic_folder: 人臉圖片資料夾
+        face_mesh: MediaPipe FaceMesh 物件
+        landmarks: 正規化後的特徵點座標 (1, 3, 468)
+        symmetry_csv_path: 對稱性CSV檔案路徑
 
-def get_color_from_z(z, threshold=0.25):
+    Returns:
+        標記了特徵點的圖片（只包含人臉部分）
     """
-    根據 z-score 計算顏色 (RGB，數值介於 0~1)，並以藍色到紅色的線性漸變表示：
-      - 當 z 為 0 時，回傳黑色 (0, 0, 0)
-      - 當 z 大於等於 threshold (預設 3) 時，回傳紅色 (1, 0, 0)
-      - 當 z 小於等於 -threshold (預設 3) 時，回傳藍色 (0, 0, 1)
-      - 介於 -threshold 與 threshold 之間時，依絕對值做線性內插
+    # 選擇一張最正面的圖片
+    angle_dict = {}
+    for file in os.listdir(face_pic_folder):
+        if not file.endswith(".jpg"):
+            continue
+        path = os.path.join(face_pic_folder, file)
+        image = cv2.imread(path)
+        if image is None:
+            continue
+        height, width = image.shape[:2]
+        results = face_mesh.process(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+        if not results.multi_face_landmarks:
+            continue
+        angle_dict[file] = calc_intermediate_angle_sum(results, height, width)
 
-    參數：
-      z: 單一 z-score 值
-      threshold: z-score 的臨界值（預設為 3）
-    回傳：
-      顏色 tuple (r, g, b)，數值介於 0~1
+    if not angle_dict:
+        return None
+
+    # 選擇最正面的圖片
+    best_file = min(angle_dict, key=angle_dict.get)
+    best_path = os.path.join(face_pic_folder, best_file)
+
+    # 載入並旋轉圖片
+    image = rotate_image(best_path, face_mesh)
+    height, width = image.shape[:2]
+
+    # 重新檢測旋轉後圖片的特徵點
+    results = face_mesh.process(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+    if not results.multi_face_landmarks:
+        return image
+
+    # 獲取原始特徵點位置
+    original_landmarks = results.multi_face_landmarks[0].landmark
+
+    # 計算人臉邊界框
+    x_coords = [landmark.x * width for landmark in original_landmarks]
+    y_coords = [landmark.y * height for landmark in original_landmarks]
+
+    # 根據特定的特徵點來確定裁剪範圍（與正規化時使用的點一致）
+    left_x = original_landmarks[234].x * width
+    right_x = original_landmarks[454].x * width
+    top_y = original_landmarks[10].y * height
+    bottom_y = original_landmarks[152].y * height
+
+    # 添加一些邊距
+    margin = 5
+    left = max(0, int(left_x - margin))
+    right = min(width, int(right_x + margin))
+    top = max(0, int(top_y - margin))
+    bottom = min(height, int(bottom_y + margin))
+
+    # 裁剪圖片
+    cropped_image = image[top:bottom, left:right]
+    cropped_height, cropped_width = cropped_image.shape[:2]
+
+    # 計算縮放比例，使臉寬為500像素（與正規化時一致）
+    face_width = right_x - left_x
+    scale_factor = 500 / face_width
+
+    # 調整裁剪後圖片的大小
+    new_width = int(cropped_width * scale_factor)
+    new_height = int(cropped_height * scale_factor)
+    resized_image = cv2.resize(cropped_image, (new_width, new_height))
+
+    # 在調整大小後的圖片上繪製特徵點和線段
+    image_with_landmarks = resized_image.copy()
+
+    # 繪製特徵點
+    for i in range(468):
+        pt = original_landmarks[i]
+        # 轉換座標到裁剪並縮放後的圖片座標系
+        x = int((pt.x * width - left) * scale_factor)
+        y = int((pt.y * height - top) * scale_factor)
+
+        # 確保點在圖片範圍內
+        if 0 <= x < new_width and 0 <= y < new_height:
+            cv2.circle(image_with_landmarks, (x, y), 2, (0, 0, 255), -1)  # 紅色點
+
+    # 繪製中線（應該在圖片中央）
+    mid_x = new_width // 2
+    cv2.line(
+        image_with_landmarks, (mid_x, 0), (mid_x, new_height), (0, 255, 255), 2
+    )  # 黃色線
+
+    # 如果有對稱性CSV，繪製線段
+    if symmetry_csv_path:
+        try:
+            df_pairs = pd.read_csv(symmetry_csv_path, encoding="utf-8-sig")
+            df_lines = df_pairs[df_pairs["pair_type"].str.startswith("line")]
+
+            for _, row_pair in df_lines.iterrows():
+                for side in ("left", "right"):
+                    try:
+                        idx0, idx1 = map(int, row_pair[side].split(","))
+                        if idx0 < 468 and idx1 < 468:
+                            pt0 = original_landmarks[idx0]
+                            pt1 = original_landmarks[idx1]
+
+                            # 轉換座標
+                            x0 = int((pt0.x * width - left) * scale_factor)
+                            y0 = int((pt0.y * height - top) * scale_factor)
+                            x1 = int((pt1.x * width - left) * scale_factor)
+                            y1 = int((pt1.y * height - top) * scale_factor)
+
+                            # 確保線段的兩個端點都在圖片範圍內
+                            if (
+                                0 <= x0 < new_width
+                                and 0 <= y0 < new_height
+                                and 0 <= x1 < new_width
+                                and 0 <= y1 < new_height
+                            ):
+                                cv2.line(
+                                    image_with_landmarks,
+                                    (x0, y0),
+                                    (x1, y1),
+                                    (0, 255, 0),
+                                    1,
+                                )  # 綠色線
+                    except:
+                        continue
+        except Exception as e:
+            print(f"繪製線段時發生錯誤: {e}")
+
+    return image_with_landmarks
+
+
+def plot_face_landmarks_with_lines(landmarks, symmetry_csv_path, ax, face_image=None):
     """
-    if z >= 0:
-        factor = min(z / threshold, 1.0)
-        # 由黑色 (0,0,0) 逐漸轉變為紅色 (1,0,0)
-        return (factor, 0.0, 0.0)
+    在指定的 matplotlib axes 上繪製臉部特徵點和線段
+
+    Args:
+        landmarks: 特徵點座標 (1, 3, 468)
+        symmetry_csv_path: 對稱性CSV檔案路徑
+        ax: matplotlib axes 物件
+        face_image: 人臉圖片 (可選)
+    """
+    if landmarks is None or len(landmarks) == 0:
+        ax.text(
+            0.5, 0.5, "無法取得特徵點", ha="center", va="center", transform=ax.transAxes
+        )
+        return
+
+    # 如果有人臉圖片，直接顯示帶有標記的圖片
+    if face_image is not None:
+        # 將BGR轉換為RGB以正確顯示顏色
+        ax.imshow(cv2.cvtColor(face_image, cv2.COLOR_BGR2RGB))
+        ax.set_title("Face Landmarks Analysis")
     else:
-        factor = min(abs(z) / threshold, 1.0)
-        # 由黑色 (0,0,0) 逐漸轉變為藍色 (0,0,1)
-        return (0.0, 0.0, factor)
+        # 沒有圖片時使用原始方式繪製
+        x = landmarks[0, 0, :]  # x座標
+        y = landmarks[0, 1, :]  # y座標
+
+        # 繪製中線
+        ax.axvline(x=250, color="r", linestyle="--", label="midline", alpha=0.7)
+
+        # 繪製特徵點
+        ax.scatter(x, y, s=1, c="red", alpha=0.5)
+
+        # 如果有對稱性CSV檔案，繪製線段
+        if symmetry_csv_path:
+            try:
+                df_pairs = pd.read_csv(symmetry_csv_path, encoding="utf-8-sig")
+                df_lines = df_pairs[df_pairs["pair_type"].str.startswith("line")]
+
+                # 準備線段數據
+                line_segments = []
+                for _, row_pair in df_lines.iterrows():
+                    for side in ("left", "right"):
+                        try:
+                            idx0, idx1 = map(int, row_pair[side].split(","))
+                            if idx0 < len(x) and idx1 < len(x):
+                                line_segments.append(
+                                    ((x[idx0], y[idx0]), (x[idx1], y[idx1]))
+                                )
+                        except:
+                            continue
+
+                # 繪製線段
+                if line_segments:
+                    lc = LineCollection(
+                        line_segments, linewidths=1, colors="lime", alpha=0.8
+                    )
+                    ax.add_collection(lc)
+
+            except Exception as e:
+                print(f"警告：讀取對稱性CSV檔案時發生錯誤: {e}")
+
+        ax.set_xlim(x.min() - 20, x.max() + 20)
+        ax.set_ylim(y.max() + 20, y.min() - 20)
+        ax.set_title("Face Landmarks with Line Segments")
+        ax.legend()
+
+    # 隱藏坐標軸
+    ax.set_xticks([])
+    ax.set_yticks([])
 
 
-def draw_multi_parts_asymmetry_subplots(parts, max_abs_z=3):
+def setup_analysis_plot(
+    canvas, landmarks, face_mesh, symmetry_csv_path, face_pic_folder=None
+):
     """
-    在同一張圖中建立兩個子圖，分別以 X 與 Y 的 z-score 著色，
-    並同時呈現多個部位的不對稱性。
-    
-    每個部位的資料格式為 (part_name, left_df, right_df, z_score_df)
-      - left_df: 左側座標 DataFrame，形狀 [1 x N] (前二分之一為 x 座標，後二分之一為 y 座標)
-      - right_df: 右側座標 DataFrame，形狀 [1 x N]
-      - z_score_df: z-score DataFrame，形狀 [1 x N] (前二分之一為 x 的 z-score，後二分之一為 y 的 z-score)
-    
-    子圖1：以 X 的 z-score 著色，並在 x = 250 加垂直虛線  
-    子圖2：以 Y 的 z-score 著色  
-    圖表固定 x 軸範圍 0～500，y 軸範圍 0～700，且反轉 y 軸 (原點位於左上方)
+    設定分析圖表
+
+    Args:
+        canvas: matplotlib canvas 物件
+        landmarks: 特徵點座標 (1, 3, 468) 或 None
+        symmetry_csv_path: 對稱性CSV檔案路徑
+        face_pic_folder: 人臉圖片資料夾路徑 (可選)
     """
-    # 建立圖表 (1x2) 固定尺寸
-    fig, axs = plt.subplots(1, 2, figsize=(10, 6))
-    
-    # 針對每個部位依序繪製
-    for part_name, left_df, right_df, z_score_df in parts:
-        # 取得左右座標 (展平成 N 個數值)
-        left_coords = left_df.values.flatten()
-        right_coords = right_df.values.flatten()
+    fig = canvas.figure
+    fig.clear()
 
-        # 取得每個部位的座標數量
-        n = len(left_coords) // 2  # 每個部位的座標數量
+    # 創建單一子圖
+    ax = fig.add_subplot(1, 1, 1)
 
-        # 前二分之一為 x 座標，後二分之一為 y 座標
-        left_x, left_y = left_coords[:n], left_coords[n:]
-        right_x, right_y = right_coords[:n], right_coords[n:]
-        
-        # 取得 z-score (前二分之一為 x 的 z-score，後二分之一為 y 的 z-score)
-        z_scores = z_score_df.values.flatten()
-        z_x = z_scores[:n]
-        z_y = z_scores[n:]
-        
-        # 計算各點顏色
-        colors_x = [get_color_from_z(z, max_abs_z) for z in z_x]
-        colors_y = [get_color_from_z(z, max_abs_z) for z in z_y]
-        
-        # 在子圖1 (X z-score 著色) 繪製左右座標
-        axs[0].scatter(left_x, left_y, s=50, c=colors_x, marker='o', label=f'Left')
-        axs[0].scatter(right_x, right_y, s=50, c=colors_x, marker='x', label=f'Right')
-        
-        # 在子圖2 (Y z-score 著色) 繪製左右座標
-        axs[1].scatter(left_x, left_y, s=50, c=colors_y, marker='o', label=f'Left')
-        axs[1].scatter(right_x, right_y, s=50, c=colors_y, marker='x', label=f'Right')
-        
-        # 設定子圖1：標題、軸範圍、垂直虛線及反轉 y 軸
-        axs[0].set_title("Asymmetry of X-axis")
-        axs[0].set_xlim(0, 500)
-        axs[0].set_ylim(0, 700)
-        axs[0].axvline(x=250, color='k', linestyle='--')
-        axs[0].invert_yaxis()
-        
-        # 設定子圖2：標題、軸範圍及反轉 y 軸
-        axs[1].set_title("Asymmetry of Y-axis")
-        axs[1].set_xlim(0, 500)
-        axs[1].set_ylim(0, 700)
-        axs[1].invert_yaxis()
-    
-    # 隱藏兩個子圖的坐標刻度
-    for ax in axs:
+    # 檢查landmarks是否有效
+    if landmarks is not None and len(landmarks) > 0:
+        face_image = None
+
+        # 如果提供了圖片資料夾，嘗試獲取帶有標記的人臉圖片
+        if face_pic_folder and os.path.exists(face_pic_folder):
+            # 獲取帶有特徵點標記的圖片
+            face_image = get_original_face_with_landmarks(
+                face_pic_folder, face_mesh, landmarks, symmetry_csv_path
+            )
+
+        # 繪製特徵點和線段
+        plot_face_landmarks_with_lines(landmarks, symmetry_csv_path, ax, face_image)
+    else:
+        # 顯示無數據訊息
+        ax.text(
+            0.5,
+            0.5,
+            "無可用的影像數據進行分析",
+            ha="center",
+            va="center",
+            transform=ax.transAxes,
+            fontsize=16,
+        )
         ax.set_xticks([])
         ax.set_yticks([])
-        ax.set_aspect('equal', adjustable='box')
-    
-    # 去除重複的圖例項目（可依需要調整）
-    handles0, labels0 = axs[0].get_legend_handles_labels()
-    by_label0 = dict(zip(labels0, handles0))
-    axs[0].legend(by_label0.values(), by_label0.keys())
-    
-    handles1, labels1 = axs[1].get_legend_handles_labels()
-    by_label1 = dict(zip(labels1, handles1))
-    axs[1].legend(by_label1.values(), by_label1.keys())
-    
-    plt.tight_layout()
-    plt.show()
+        ax.set_title("分析結果")
 
-#-----------法二 差值-----------#
-
-def get_color_from_diff(diff, max_diff=25):
-    """
-    根據差值計算顏色 (RGB，數值介於 0~1)：
-      - 當 diff == 0 時，顏色為藍色 (0, 0, 1)
-      - 當 diff >= max_diff (預設 25) 時，顏色為純紅 (1, 0, 0)
-      - 中間值則從藍色逐漸轉變為紅色 (紅分量從 0 漸變到 1，藍分量則由 1 漸變到 0)
-      
-    參數：
-      diff: 單一差值
-      max_diff: 差值對應至紅色飽和的最大值 (預設 25)
-    回傳：
-      顏色 tuple (r, g, b)，數值介於 0~1
-    """
-    factor = min(diff / max_diff, 1.0)
-    # 從藍色 (0,0,1) 漸變到 純紅 (1,0,0)
-    return (factor, 0.0, 1.0 - factor)
-
-
-
-def draw_multi_parts_asymmetry_subplots(parts, max_diff=25):
-    """
-    在同一張圖中建立兩個子圖，分別以 X 與 Y 的差值著色，
-    並同時呈現多個部位的不對稱性。
-    
-    每個部位的資料格式為 (part_name, left_df, right_df, diff_df)
-      - left_df: 左側座標 DataFrame，形狀 [1 x N] (前二分之一為 x 座標，後二分之一為 y 座標)
-      - right_df: 右側座標 DataFrame，形狀 [1 x N]
-      - diff_df: 差值 DataFrame，形狀 [1 x N] (前二分之一為 x 的差值，後二分之一為 y 的差值)
-    
-    子圖1：以 X 的差值著色，並在 x = 250 加垂直虛線  
-    子圖2：以 Y 的差值著色  
-    圖表固定 x 軸範圍 0～500，y 軸範圍 0～700，且反轉 y 軸 (原點位於左上方)
-    """
-    # 建立圖表 (1x2) 固定尺寸
-    fig, axs = plt.subplots(1, 2, figsize=(10, 6))
-    
-    # 針對每個部位依序繪製
-    for part_name, left_df, right_df, diff_df in parts:
-        # 取得左右座標 (展平成 N 個數值)
-        left_coords = left_df.values.flatten()
-        right_coords = right_df.values.flatten()
-
-        # 取得每個部位的座標數量 (假設前半為 x, 後半為 y)
-        n = len(left_coords) // 2
-
-        # 前二分之一為 x 座標，後二分之一為 y 座標
-        left_x, left_y = left_coords[:n], left_coords[n:]
-        right_x, right_y = right_coords[:n], right_coords[n:]
-        
-        # 取得差值 (前二分之一為 x 的差值，後二分之一為 y 的差值)
-        diff_values = diff_df.values.flatten()
-        diff_x = diff_values[:n]
-        diff_y = diff_values[n:]
-        
-        # 計算各點顏色 (僅從白色漸變到紅色)
-        colors_x = [get_color_from_diff(diff, max_diff = 50) for diff in diff_x]
-        colors_y = [get_color_from_diff(diff, max_diff = 15) for diff in diff_y]
-        
-        # 在子圖1 (X 差值著色) 繪製左右座標
-        axs[0].scatter(left_x, left_y, s=50, c=colors_x, marker='o', label=f'Left')
-        axs[0].scatter(right_x, right_y, s=50, c=colors_x, marker='x', label=f'Right')
-        
-        # 在子圖2 (Y 差值著色) 繪製左右座標
-        axs[1].scatter(left_x, left_y, s=50, c=colors_y, marker='o', label=f'Left')
-        axs[1].scatter(right_x, right_y, s=50, c=colors_y, marker='x', label=f'Right')
-    
-    # 設定子圖1：標題、軸範圍、垂直虛線及反轉 y 軸
-    axs[0].set_title("Asymmetry of X-axis (Difference)")
-    axs[0].set_xlim(0, 500)
-    axs[0].set_ylim(0, 700)
-    axs[0].axvline(x=250, color='k', linestyle='--')
-    axs[0].invert_yaxis()
-    
-    # 設定子圖2：標題、軸範圍及反轉 y 軸
-    axs[1].set_title("Asymmetry of Y-axis (Difference)")
-    axs[1].set_xlim(0, 500)
-    axs[1].set_ylim(0, 700)
-    axs[1].invert_yaxis()
-    
-    # 隱藏兩個子圖的坐標刻度
-    for ax in axs:
-        ax.set_xticks([])
-        ax.set_yticks([])
-        ax.set_aspect('equal', adjustable='box')
-    
-    # 去除重複的圖例項目
-    handles0, labels0 = axs[0].get_legend_handles_labels()
-    by_label0 = dict(zip(labels0, handles0))
-    axs[0].legend(by_label0.values(), by_label0.keys())
-    
-    handles1, labels1 = axs[1].get_legend_handles_labels()
-    by_label1 = dict(zip(labels1, handles1))
-    axs[1].legend(by_label1.values(), by_label1.keys())
-    
-    plt.tight_layout()
-    plt.show()
+    # 調整布局
+    fig.tight_layout()
+    canvas.draw()
