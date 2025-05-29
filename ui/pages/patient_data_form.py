@@ -1,21 +1,32 @@
 import sys
 import os
+
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+grandparent_dir = os.path.dirname(parent_dir)
+sys.path.append(grandparent_dir)
+
+
+import sys
+import os
 from PyQt6 import QtWidgets, QtCore, QtGui
 import pandas as pd
+
 # 處理相對導入問題
 try:
     # 當從子資料夾直接執行時
-    import patient_data_form_style as styles
+    import ui.styles.patient_data_form_style as styles
 except ModuleNotFoundError:
     # 當從父資料夾執行時
-    from . import patient_data_form_style as styles
+    from ui.styles import patient_data_form_style as styles
+
 
 class PatientDataFormWindow(QtWidgets.QFrame):
     def __init__(self):
         super().__init__()
         # 分離資料結構
         self.form_fields = {}  # 只存表單欄位元件
-        self.buttons = {}      # 只存按鈕元件
+        self.buttons = {}  # 只存按鈕元件
         self.save_path = None  # 簡化儲存路徑管理
         self._next_callback = None
         self._build_ui()
@@ -123,14 +134,14 @@ class PatientDataFormWindow(QtWidgets.QFrame):
 
         # 6QDS 評分欄位
         for i in range(1, 11):
-            layout.addWidget(self._make_label(f"q{i}:"), 1, i-1)
+            layout.addWidget(self._make_label(f"q{i}:"), 1, i - 1)
             q_input = QtWidgets.QLineEdit()
             q_input.setPlaceholderText("0-5")
             q_input.setStyleSheet(styles.INPUT_STYLE)
             # 限制評分範圍 0-5
             validator = QtGui.QIntValidator(0, 5)
             q_input.setValidator(validator)
-            layout.addWidget(q_input, 2, i-1)
+            layout.addWidget(q_input, 2, i - 1)
             self.form_fields[f"q{i}"] = q_input
 
         self.root_layout.addWidget(parent)
@@ -175,7 +186,6 @@ class PatientDataFormWindow(QtWidgets.QFrame):
 
         self.root_layout.addWidget(parent)
 
-
     # ===== 以下為輔助函數 =====
     def _make_label(self, text):
         lbl = QtWidgets.QLabel(text)
@@ -185,9 +195,7 @@ class PatientDataFormWindow(QtWidgets.QFrame):
     def open_save_folder(self):
         """選擇儲存資料夾"""
         path = QtWidgets.QFileDialog.getExistingDirectory(
-            self, 
-            "選擇儲存資料夾",
-            os.path.expanduser("~")  # 預設開啟使用者主目錄
+            self, "選擇儲存資料夾", os.path.expanduser("~")  # 預設開啟使用者主目錄
         )
         if path:
             # 檢查資料夾寫入權限
@@ -196,9 +204,7 @@ class PatientDataFormWindow(QtWidgets.QFrame):
                 self.save_path_input.setText(path)
             else:
                 QtWidgets.QMessageBox.warning(
-                    self, 
-                    "權限不足", 
-                    "選擇的資料夾沒有寫入權限，請選擇其他資料夾"
+                    self, "權限不足", "選擇的資料夾沒有寫入權限，請選擇其他資料夾"
                 )
 
     def clear_data(self):
@@ -207,10 +213,11 @@ class PatientDataFormWindow(QtWidgets.QFrame):
             self,
             "確認清除",
             "確定要清除所有已填寫的資料嗎？",
-            QtWidgets.QMessageBox.StandardButton.Yes | QtWidgets.QMessageBox.StandardButton.No,
-            QtWidgets.QMessageBox.StandardButton.No
+            QtWidgets.QMessageBox.StandardButton.Yes
+            | QtWidgets.QMessageBox.StandardButton.No,
+            QtWidgets.QMessageBox.StandardButton.No,
         )
-        
+
         if reply == QtWidgets.QMessageBox.StandardButton.Yes:
             self._clear_form_fields()
 
@@ -237,7 +244,9 @@ class PatientDataFormWindow(QtWidgets.QFrame):
         # 驗證資料
         validation_errors = self.validate_data()
         if validation_errors:
-            error_message = "請修正以下問題：\n\n" + "\n".join(f"• {error}" for error in validation_errors)
+            error_message = "請修正以下問題：\n\n" + "\n".join(
+                f"• {error}" for error in validation_errors
+            )
             QtWidgets.QMessageBox.warning(self, "資料驗證失敗", error_message)
             return
 
@@ -253,17 +262,17 @@ class PatientDataFormWindow(QtWidgets.QFrame):
         data = self.get_data()
 
         # 檢查必填欄位
-        if not data.get('ID', '').strip():
+        if not data.get("ID", "").strip():
             errors.append("編號為必填欄位")
 
-        if not data.get('gender'):
+        if not data.get("gender"):
             errors.append("請選擇生理性別")
 
         if not self.save_path:
             errors.append("請選擇儲存資料夾")
 
         # 檢查教育年數格式
-        edu_years = data.get('education_years', '').strip()
+        edu_years = data.get("education_years", "").strip()
         if edu_years and not edu_years.isdigit():
             errors.append("教育年數必須為數字")
         elif edu_years and (int(edu_years) < 0 or int(edu_years) > 30):
@@ -271,7 +280,7 @@ class PatientDataFormWindow(QtWidgets.QFrame):
 
         # 檢查 6QDS 評分
         for i in range(1, 11):
-            score = data.get(f'q{i}', '').strip()
+            score = data.get(f"q{i}", "").strip()
             if score:  # 如果有填寫
                 if not score.isdigit():
                     errors.append(f"q{i} 評分必須為數字")
@@ -291,7 +300,7 @@ class PatientDataFormWindow(QtWidgets.QFrame):
                 data[field_name] = checked_button.text() if checked_button else None
             elif isinstance(widget, QtWidgets.QDateEdit):
                 data[field_name] = widget.date().toString("yyyy-MM-dd")
-        
+
         return data
 
     def save_data(self):
@@ -299,47 +308,40 @@ class PatientDataFormWindow(QtWidgets.QFrame):
         try:
             data = self.get_data()
             df = pd.DataFrame([data])
-            
+
             file_path = os.path.join(self.save_path, "AD_patient_data.csv")
-            
+
             # 檢查檔案是否存在以決定是否寫入標題
             file_exists = os.path.isfile(file_path)
             mode = "a" if file_exists else "w"
             header = not file_exists
-            
+
             # 儲存到 CSV
             df.to_csv(
-                file_path, 
-                mode=mode, 
-                header=header, 
-                index=False, 
-                encoding="utf-8-sig"
+                file_path, mode=mode, header=header, index=False, encoding="utf-8-sig"
             )
-            
+
             # 顯示成功訊息
             QtWidgets.QMessageBox.information(
-                self, 
-                "儲存成功", 
-                f"患者資料已成功儲存至：\n{file_path}"
+                self, "儲存成功", f"患者資料已成功儲存至：\n{file_path}"
             )
-            
+
             return True
-            
+
         except PermissionError:
             QtWidgets.QMessageBox.critical(
-                self, 
-                "儲存失敗", 
-                "沒有權限寫入指定的資料夾，請檢查資料夾權限或選擇其他位置"
+                self,
+                "儲存失敗",
+                "沒有權限寫入指定的資料夾，請檢查資料夾權限或選擇其他位置",
             )
             return False
-            
+
         except Exception as e:
             QtWidgets.QMessageBox.critical(
-                self, 
-                "儲存失敗", 
-                f"儲存時發生錯誤：\n{str(e)}"
+                self, "儲存失敗", f"儲存時發生錯誤：\n{str(e)}"
             )
             return False
+
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)

@@ -29,9 +29,9 @@
 #     sys.exit(app.exec())
 
 # main.py
-from pages.patient_data_form import PatientDataFormWindow
-from pages.pic_caping_window import PicCapingWindow
-from pages.analysis_report_window import AnalysisReportWindow
+from ui.pages.patient_data_form import PatientDataFormWindow
+from ui.pages.pic_caping_window import PicCapingWindow
+from ui.pages.analysis_report_window import AnalysisReportWindow
 from PyQt6 import QtWidgets, QtCore
 import sys
 import os
@@ -76,10 +76,13 @@ class ADRecordingAnalysisWindow(QtWidgets.QMainWindow):
         # CSV 與模型路徑
         csv_path = os.path.join(save_base, "AD_patient_data.csv")
         model_path = r"C:\Users\4080\Desktop\python\AD-Sensor-Project\data\XGBoost.json"  # 替換為實際模型路徑
-        symmetry_csv_path = r'C:\Users\4080\Desktop\python\AD-Sensor-Project\data\symmetry_all_pairs.csv'
-        self.analysis_window = AnalysisReportWindow(save_base, patient_id, csv_path, symmetry_csv_path, model_path)
+        symmetry_csv_path = r"C:\Users\4080\Desktop\python\AD-Sensor-Project\data\symmetry_all_pairs.csv"
+        self.analysis_window = AnalysisReportWindow(
+            save_base, patient_id, csv_path, symmetry_csv_path, model_path
+        )
         self.analysis_window.show()
         QtCore.QTimer.singleShot(0, self.analysis_window.run_analysis)
+
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
