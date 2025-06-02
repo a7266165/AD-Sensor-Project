@@ -1,7 +1,5 @@
 __pycache__
 .venv
-*.lock
-*.toml
 *.csv
 *.mp4
 *.png
