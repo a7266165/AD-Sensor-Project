@@ -1,87 +1,145 @@
-AD-Sensor-Project
+# AD-Sensor-Project
 
-# 結構樹
+An Alzheimer's Disease screening system using facial analysis and questionnaire data.
+
+
+## Project Structure
 ```
-├── .gitignore
-├── arduino
-│   └── LED.ino
-├── data
+AD-Sensor-Project/
+├── _images
+│   ├── UI
+│   │   ├── analysis_report_window.png
+│   │   ├── patient_data_form.png
+│   │   ├── pic_caping_window_end.png
+│   │   └── pic_caping_window_start.png
+│   └── UI_alpha
+│       ├── pic_caping_window_re_connect_cam.png
+│       ├── pic_caping_window_re_connect_cam_success.png
+│       ├── pic_caping_window_re_connect_LED.png
+│       └── pic_caping_window_re_connect_LED_success.png
+├── arduino/
+│   └── LED.ino                 # Arduino LED control sketch
+├── data/
 │   ├── .gitignore
 │   ├── haarcascade_frontalface_default.xml
-│   ├── symmetry_all_pairs.csv
-│   └── XGBoost.json
-├── main.py
-├── poetry.lock
-├── pyproject.toml
-├── README.md
-├── test_util
-│   └── connect_arduino.py
-├── ui
-│   ├── pages
-│   │   ├── analysis_report_window.py
+│   ├── symmetry_all_pairs.csv  # Facial symmetry mapping
+│   └── XGBoost.json            # Pre-trained ML model
+├── ui/
+│   ├── pages/                  # UI windows
 │   │   ├── patient_data_form.py
-│   │   └── pic_caping_window.py
-│   └── styles
-│       ├── analysis_report_window_style.py
-│       ├── patient_data_form_style.py
-│       └── pic_caping_window_style.py
-└── utils
-    ├── analysis_pic.py
-    ├── cap_pic.py
-    ├── led_controller.py
-    └── predict_questionaire.py
-
+│   │   ├── pic_caping_window.py
+│   │   └── analysis_report_window.py
+│   └── styles/                 # UI styling
+├── utils/                      # Core functionality
+│   ├── analysis_pic.py         # Face analysis algorithms
+│   ├── cap_pic.py              # Camera capture utilities
+│   ├── led_controller.py       # Arduino communication
+│   └── predict_questionaire.py # ML prediction
+├── .gitignore                  
+├── main.py                     # Application entry point
+├── poetry.lock                 # Locked dependency versions
+├── pyproject.toml              # Poetry dependencies
+└── README.md
 ```
 
-# 快速啟動程式
-(1) 複製專案
-git clone https://github.com/a7266165/AD-Sensor-Project.gitl
+## Installation
 
-(2) 切換至專案目錄
-cd AD-Sensor-Project
+### Prerequisites
+- Python 3.11.x
+- Intel RealSense SDK
+- Arduino IDE (for LED functionality)
+- Git
 
-(3) 創建環境 (python >=3.11,<3.12)
+### Setup Steps
 
-(4) 切換至該環境，使用 Poetry 安裝相關套件
-poetry install --no-root
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/a7266165/AD-Sensor-Project.git
+   cd AD-Sensor-Project
+   ```
 
-(5) 啟動界面
+2. **Create Python environment**
+   ```bash
+   python -m venv venv
+   # Windows
+   venv\Scripts\activate
+   # macOS/Linux
+   source venv/bin/activate
+   ```
+
+3. **Install dependencies**
+   ```bash
+   pip install poetry
+   poetry install --no-root
+   ```
+
+4. **Upload Arduino sketch** (Optional for LED feature)
+   - Open `arduino/LED.ino` in Arduino IDE
+   - Connect Arduino board
+   - Upload the sketch
+
+## Usage
+
+### Starting the Application
+```bash
 python main.py
+```
 
-(5-1) 各頁面獨立測試
+### Testing Individual Components
+```bash
+# Test patient form
 python ./ui/pages/patient_data_form.py
-python ./ui/pages/patient_data_form.py
+
+# Test camera window
+python ./ui/pages/pic_caping_window.py
+
+# Test analysis window
 python ./ui/pages/analysis_report_window.py
+```
 
-# 基本資料儲存格式
-ID,cap_date,gender,birthday,education_years,q1,q2,q3,q4,q5,q6,q7,q8,q9,q10
-ID: 患者識別碼
-cap_date: 資料捕捉日期
-gender: 性別
-birthday: 出生日期
-education_years: 教育年數
-q1-q10: 問卷題目回答 (1-10題)
+## Data Format
+Patient data is stored in CSV format with the following structure:
 
-# 界面
-(1) 基本資料表單
-![My Image](_images/UI/patient_data_form.png)
+| Field | Description |
+|-------|-------------|
+| ID | Patient identifier |
+| cap_date | Capture date (YYYY-MM-DD) |
+| gender | Patient gender |
+| birthday | Date of birth (YYYY-MM-DD) |
+| education_years | Years of education |
+| q1-q10 | Questionnaire responses (1-10) |
 
-(2) 開始拍攝
-![My Image](_images/UI/pic_caping_window_start.png)
+## 📸 Screenshots
 
-(3) 拍攝結束
-![My Image](_images/UI/pic_caping_window_end.png)
+### Patient Data Form
+![Patient Data Form](_images/UI/patient_data_form.png)
 
-(4) 呈現分析結果
-![My Image](_images/UI/patient_data_form.png)
+### Camera Capture
+![Start Capture](_images/UI/pic_caping_window_start.png)
+![End Capture](_images/UI/pic_caping_window_end.png)
 
-# 實驗性功能
-(1) LED重連接
-![My Image](_images/UI_alpha/pic_caping_window_re_connect_LED.png)
+### Analysis Results
+![Analysis Report](_images/UI/analysis_report_window.png)
 
-![My Image](_images/UI_alpha/pic_caping_window_re_connect_LED_success.png)
+### Device Reconnection Features
+<details>
+<summary>LED Reconnection</summary>
 
-(2) 相機重連接
-![My Image](_images/UI_alpha/pic_caping_window_re_connect_cam.png)
+![LED Reconnect](_images/UI_alpha/pic_caping_window_re_connect_LED.png)
+![LED Success](_images/UI_alpha/pic_caping_window_re_connect_LED_success.png)
+</details>
 
-![My Image](_images/UI_alpha/pic_caping_window_re_connect_cam_success.png)
+<details>
+<summary>Camera Reconnection</summary>
+
+![Camera Reconnect](_images/UI_alpha/pic_caping_window_re_connect_cam.png)
+![Camera Success](_images/UI_alpha/pic_caping_window_re_connect_cam_success.png)
+</details>
+
+## 🔧 Hardware Requirements
+
+- **Camera**: Intel RealSense D435/D415 or compatible
+- **Arduino**: Arduino Uno/Mega with LED circuit (optional)
+- **Computer**: 
+  - not decide
+
