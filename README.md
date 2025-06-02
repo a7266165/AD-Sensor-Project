@@ -35,14 +35,17 @@ AD-Sensor-Project
 ```
 
 # 快速啟動程式
+
 (1) 複製專案
-git clone <https://github.com/a7266165/AD-Sensor-Project.gitl>
+git clone https://github.com/a7266165/AD-Sensor-Project.gitl
+
+(2) 切換至專案目錄
 cd AD-Sensor-Project
 
-(2) 使用 Poetry 安裝相依套件
+(3) 使用 Poetry 建立環境以及相關套件
 poetry install
 
-(3) 啟動界面
+(4) 啟動界面
 python main.py
 
 
