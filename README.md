@@ -109,7 +109,7 @@ Patient data is stored in CSV format with the following structure:
 | education_years | Years of education |
 | q1-q10 | Questionnaire responses (1-10) |
 
-## 📸 Screenshots
+## UI Screenshots
 
 ### Patient Data Form
 ![Patient Data Form](_images/UI/patient_data_form.png)
@@ -121,7 +121,7 @@ Patient data is stored in CSV format with the following structure:
 ### Analysis Results
 ![Analysis Report](_images/UI/analysis_report_window.png)
 
-### Device Reconnection Features
+### Device Reconnection Features(Alpha)
 <details>
 <summary>LED Reconnection</summary>
 
@@ -136,10 +136,9 @@ Patient data is stored in CSV format with the following structure:
 ![Camera Success](_images/UI_alpha/pic_caping_window_re_connect_cam_success.png)
 </details>
 
-## 🔧 Hardware Requirements
+## Hardware Requirements
 
 - **Camera**: Intel RealSense D435/D415 or compatible
 - **Arduino**: Arduino Uno/Mega with LED circuit (optional)
-- **Computer**: 
-  - not decide
+- **Computer**: not decide
 
