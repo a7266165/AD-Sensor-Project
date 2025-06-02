@@ -2,7 +2,6 @@ import numpy as np
 import pandas as pd
 from xgboost import XGBClassifier
 
-
 def load_patient_data(csv_path, patient_id):
     """載入病患資料"""
     try:
@@ -15,7 +14,6 @@ def load_patient_data(csv_path, patient_id):
         return row
     except Exception as e:
         raise Exception(f"載入資料錯誤: {str(e)}")
-
 
 def prepare_features(row):
     """準備模型特徵"""
@@ -41,7 +39,6 @@ def prepare_features(row):
     except Exception as e:
         raise Exception(f"特徵準備錯誤: {str(e)}")
 
-
 def predict_with_model(X, model_path):
     """使用模型進行預測"""
     try:
@@ -51,7 +48,6 @@ def predict_with_model(X, model_path):
         return y_pred[0]
     except Exception as e:
         raise Exception(f"模型預測錯誤: {str(e)}")
-
 
 def run_questionnaire_prediction(csv_path, patient_id, model_path):
     """執行完整的問卷預測流程"""

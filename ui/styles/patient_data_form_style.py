@@ -1,6 +1,3 @@
-# styles.py
-# 將所有 QSS 樣式定義集中於此，供 Python 模組 import 使用
-
 BUTTON_STYLE = """
 QPushButton {
     background-color: rgb(255, 255, 255);

@@ -1,10 +1,7 @@
-# led_controller.py - LED控制模組
-
 import time
 import serial
 import serial.tools.list_ports
 from PyQt6 import QtCore
-
 
 def find_arduino_port():
     """搜尋Arduino連接埠"""
@@ -13,7 +10,6 @@ def find_arduino_port():
         if "Arduino" in port.description or "CH340" in port.description:
             return port.device
     return None
-
 
 class LEDController:
     """Arduino LED控制器"""
@@ -39,7 +35,6 @@ class LEDController:
     def cycle_led(self):
         """LED循環3次"""
         self._send_command(b"LED_cycle_3_times")
-
 
 class LEDWorker(QtCore.QThread):
     """LED控制子執行緒"""

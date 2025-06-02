@@ -78,6 +78,9 @@ def align_and_select_faces(face_pic_folder, face_mesh):
     """
     遍歷資料夾中所有 jpg 圖片，選取夾角總和最小的 10 張（較正面），
     並將它們依據中軸角度進行旋轉
+    
+    Returns:
+        tuple: (rotated_images, selected_files) - 轉正後的圖片列表和對應的檔案名稱列表
     """
     angle_dict = {}
     for file in os.listdir(face_pic_folder):
@@ -101,7 +104,7 @@ def align_and_select_faces(face_pic_folder, face_mesh):
         rotate_image(os.path.join(face_pic_folder, file), face_mesh)
         for file in selected_files
     ]
-    return rotated_images
+    return rotated_images  # 同時返回圖片和檔案名稱
 
 
 # -----------2. 特徵正規化-----------#
@@ -152,18 +155,23 @@ def extract_normalized_landmark_coordinates(rotated_face_images, face_mesh):
 
 
 def analyze_face_landmarks(save_pic_folder, face_mesh):
-    """分析臉部特徵點"""
+    """
+    分析臉部特徵點
+    
+    Returns:
+        tuple: (landmarks, rotated_images, selected_files) - 特徵點、轉正圖片列表、檔案名稱列表
+    """
     try:
         imgs = align_and_select_faces(save_pic_folder, face_mesh)
         if not imgs:
-            return None
+            return None, None
 
         landmarks = extract_normalized_landmark_coordinates(imgs, face_mesh)
-        return landmarks
+        return landmarks, imgs
 
     except Exception as e:
         print(f"臉部特徵點分析錯誤: {str(e)}")
-        return None
+        return None, None
 
 
 # -----------3. 取出特定點的座標-----------#
@@ -320,7 +328,7 @@ def calculate_symmetry_metrics(landmarks, symmetry_csv_path):
 
 # -----------5. 繪圖-----------#
 def get_original_face_with_landmarks(
-    face_pic_folder, face_mesh, landmarks, symmetry_csv_path=None
+    face_pic_folder, face_mesh, symmetry_csv_path=None
 ):
     """
     獲取帶有特徵點標記的原始人臉圖片（只截取人臉部分）
@@ -328,7 +336,6 @@ def get_original_face_with_landmarks(
     Args:
         face_pic_folder: 人臉圖片資料夾
         face_mesh: MediaPipe FaceMesh 物件
-        landmarks: 正規化後的特徵點座標 (1, 3, 468)
         symmetry_csv_path: 對稱性CSV檔案路徑
 
     Returns:
@@ -351,8 +358,6 @@ def get_original_face_with_landmarks(
 
     if not angle_dict:
         return None
-
-    # 選擇最正面的圖片
     best_file = min(angle_dict, key=angle_dict.get)
     best_path = os.path.join(face_pic_folder, best_file)
 
@@ -367,10 +372,6 @@ def get_original_face_with_landmarks(
 
     # 獲取原始特徵點位置
     original_landmarks = results.multi_face_landmarks[0].landmark
-
-    # 計算人臉邊界框
-    x_coords = [landmark.x * width for landmark in original_landmarks]
-    y_coords = [landmark.y * height for landmark in original_landmarks]
 
     # 根據特定的特徵點來確定裁剪範圍（與正規化時使用的點一致）
     left_x = original_landmarks[234].x * width
@@ -412,7 +413,7 @@ def get_original_face_with_landmarks(
         if 0 <= x < new_width and 0 <= y < new_height:
             cv2.circle(image_with_landmarks, (x, y), 2, (0, 0, 255), -1)  # 紅色點
 
-    # 繪製中線（應該在圖片中央）
+    # 繪製中線
     mid_x = new_width // 2
     cv2.line(
         image_with_landmarks, (mid_x, 0), (mid_x, new_height), (0, 255, 255), 2
@@ -459,6 +460,98 @@ def get_original_face_with_landmarks(
 
     return image_with_landmarks
 
+def get_face_with_landmarks_from_image(image, face_mesh, symmetry_csv_path=None):
+    """
+    從已經轉正的圖片獲取帶有特徵點標記的人臉圖片（只截取人臉部分）
+    
+    Args:
+        image: 已經轉正的圖片
+        face_mesh: MediaPipe FaceMesh 物件
+        symmetry_csv_path: 對稱性CSV檔案路徑
+        
+    Returns:
+        標記了特徵點的圖片（只包含人臉部分）
+    """
+    height, width = image.shape[:2]
+    
+    # 檢測特徵點
+    results = face_mesh.process(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+    if not results.multi_face_landmarks:
+        return image
+    
+    # 獲取原始特徵點位置
+    original_landmarks = results.multi_face_landmarks[0].landmark
+    
+    # 根據特定的特徵點來確定裁剪範圍
+    left_x = original_landmarks[234].x * width
+    right_x = original_landmarks[454].x * width
+    top_y = original_landmarks[10].y * height
+    bottom_y = original_landmarks[152].y * height
+    
+    # 添加一些邊距
+    margin = 5
+    left = max(0, int(left_x - margin))
+    right = min(width, int(right_x + margin))
+    top = max(0, int(top_y - margin))
+    bottom = min(height, int(bottom_y + margin))
+    
+    # 裁剪圖片
+    cropped_image = image[top:bottom, left:right]
+    cropped_height, cropped_width = cropped_image.shape[:2]
+    
+    # 計算縮放比例，使臉寬為500像素
+    face_width = right_x - left_x
+    scale_factor = 500 / face_width
+    
+    # 調整裁剪後圖片的大小
+    new_width = int(cropped_width * scale_factor)
+    new_height = int(cropped_height * scale_factor)
+    resized_image = cv2.resize(cropped_image, (new_width, new_height))
+    
+    # 在調整大小後的圖片上繪製特徵點和線段
+    image_with_landmarks = resized_image.copy()
+    
+    # 繪製特徵點
+    for i in range(468):
+        pt = original_landmarks[i]
+        x = int((pt.x * width - left) * scale_factor)
+        y = int((pt.y * height - top) * scale_factor)
+        
+        if 0 <= x < new_width and 0 <= y < new_height:
+            cv2.circle(image_with_landmarks, (x, y), 2, (0, 0, 255), -1)
+    
+    # 繪製中線
+    mid_x = new_width // 2
+    cv2.line(image_with_landmarks, (mid_x, 0), (mid_x, new_height), (0, 255, 255), 2)
+    
+    # 如果有對稱性CSV，繪製線段
+    if symmetry_csv_path:
+        try:
+            df_pairs = pd.read_csv(symmetry_csv_path, encoding='utf-8-sig')
+            df_lines = df_pairs[df_pairs['pair_type'].str.startswith('line')]
+            
+            for _, row_pair in df_lines.iterrows():
+                for side in ('left', 'right'):
+                    try:
+                        idx0, idx1 = map(int, row_pair[side].split(','))
+                        if idx0 < 468 and idx1 < 468:
+                            pt0 = original_landmarks[idx0]
+                            pt1 = original_landmarks[idx1]
+                            
+                            x0 = int((pt0.x * width - left) * scale_factor)
+                            y0 = int((pt0.y * height - top) * scale_factor)
+                            x1 = int((pt1.x * width - left) * scale_factor)
+                            y1 = int((pt1.y * height - top) * scale_factor)
+                            
+                            if (0 <= x0 < new_width and 0 <= y0 < new_height and 
+                                0 <= x1 < new_width and 0 <= y1 < new_height):
+                                cv2.line(image_with_landmarks, (x0, y0), (x1, y1), (0, 255, 0), 1)
+                    except:
+                        continue
+        except Exception as e:
+            print(f"繪製線段時發生錯誤: {e}")
+    
+    return image_with_landmarks
 
 def plot_face_landmarks_with_lines(landmarks, symmetry_csv_path, ax, face_image=None):
     """
@@ -531,52 +624,39 @@ def plot_face_landmarks_with_lines(landmarks, symmetry_csv_path, ax, face_image=
     ax.set_yticks([])
 
 
-def setup_analysis_plot(
-    canvas, landmarks, face_mesh, symmetry_csv_path, face_pic_folder=None
-):
+def setup_analysis_plot(canvas, landmarks, face_mesh, symmetry_csv_path, 
+                      rotated_images=None):
     """
     設定分析圖表
-
+    
     Args:
         canvas: matplotlib canvas 物件
         landmarks: 特徵點座標 (1, 3, 468) 或 None
+        face_mesh: MediaPipe FaceMesh 物件
         symmetry_csv_path: 對稱性CSV檔案路徑
         face_pic_folder: 人臉圖片資料夾路徑 (可選)
+        rotated_images: 已經轉正的圖片列表 (可選)
     """
     fig = canvas.figure
     fig.clear()
-
-    # 創建單一子圖
+    
     ax = fig.add_subplot(1, 1, 1)
-
-    # 檢查landmarks是否有效
+    
     if landmarks is not None and len(landmarks) > 0:
         face_image = None
-
-        # 如果提供了圖片資料夾，嘗試獲取帶有標記的人臉圖片
-        if face_pic_folder and os.path.exists(face_pic_folder):
-            # 獲取帶有特徵點標記的圖片
-            face_image = get_original_face_with_landmarks(
-                face_pic_folder, face_mesh, landmarks, symmetry_csv_path
+        
+        if rotated_images and len(rotated_images) > 0:
+            face_image = get_face_with_landmarks_from_image(
+                rotated_images[0], face_mesh, symmetry_csv_path
             )
-
-        # 繪製特徵點和線段
+        
         plot_face_landmarks_with_lines(landmarks, symmetry_csv_path, ax, face_image)
     else:
-        # 顯示無數據訊息
-        ax.text(
-            0.5,
-            0.5,
-            "無可用的影像數據進行分析",
-            ha="center",
-            va="center",
-            transform=ax.transAxes,
-            fontsize=16,
-        )
+        ax.text(0.5, 0.5, '無可用的影像數據進行分析',
+                ha='center', va='center', transform=ax.transAxes, fontsize=16)
         ax.set_xticks([])
         ax.set_yticks([])
-        ax.set_title("分析結果")
-
-    # 調整布局
+        ax.set_title('分析結果')
+    
     fig.tight_layout()
     canvas.draw()

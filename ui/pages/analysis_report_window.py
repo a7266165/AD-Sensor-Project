@@ -1,7 +1,5 @@
 import sys
 import os
-
-# 路徑設定
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
 grandparent_dir = os.path.dirname(parent_dir)
@@ -14,8 +12,6 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from utils import analysis_pic, predict_questionaire
 import mediapipe as mp
-
-# 導入樣式設定
 from ui.styles.analysis_report_window_style import (
     TITLE_STYLE,
     RESULT_LABEL_STYLE,
@@ -27,7 +23,6 @@ from ui.styles.analysis_report_window_style import (
     STATUS_MESSAGE_STYLE,
     ERROR_MESSAGE_STYLE,
 )
-
 
 class AnalysisReportWindow(QtWidgets.QFrame):
     """分析報告視窗"""
@@ -149,13 +144,8 @@ class AnalysisReportWindow(QtWidgets.QFrame):
             min_detection_confidence=0.8,
             min_tracking_confidence=0.8,
         )
-
-        landmarks = analysis_pic.analyze_face_landmarks(self.save_pic_folder, face_mesh)
-
-        # 測試用，之後要移除
-        self._landmarks_cache = landmarks
-        print(
-            f"Landmarks shape: {landmarks.shape if landmarks is not None else 'None'}"
+        landmarks, rotated_images = analysis_pic.analyze_face_landmarks(
+            self.save_pic_folder, face_mesh
         )
 
         # 3. 計算對稱性指標
@@ -165,78 +155,31 @@ class AnalysisReportWindow(QtWidgets.QFrame):
             )
             self._update_symmetry_display(symmetry_metrics)
 
-        # 4. 繪製分析圖表
+        # 4. 繪製分析圖表 - 直接使用已經篩選和轉正的圖片
         analysis_pic.setup_analysis_plot(
             self.canvas,
             landmarks,
             face_mesh,
             self.symmetry_csv_path,
-            self.save_pic_folder,
+            rotated_images  # 傳入已經轉正的圖片列表
         )
 
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)
 
-    # 測試參數
-    save_parent_folder = r"C:\Users\a1234\Desktop\AD-Sensor-Project\saved_data"
-    patient_id = "P2-5_no_rotated"
+    save_parent_folder = r".\saved_data"
+    patient_id = "20250602_test_health_2"
     csv_path = os.path.join(save_parent_folder, "AD_patient_data.csv")
-    model_path = r"C:\Users\a1234\Desktop\AD-Sensor-Project\data\XGBoost.json"
+    model_path = r".\data\XGBoost.json"
     symmetry_csv_path = (
-        r"C:\Users\a1234\Desktop\AD-Sensor-Project\data\symmetry_all_pairs.csv"
+        r".\data\symmetry_all_pairs.csv"
     )
 
     window = AnalysisReportWindow(
         save_parent_folder, patient_id, csv_path, symmetry_csv_path, model_path
     )
 
-    # 執行分析並保存landmarks到CSV
     window.run_analysis()
-
-    # 如果有landmarks資料，將其保存為CSV檔案
-    if hasattr(window, "_landmarks_cache") and window._landmarks_cache is not None:
-        landmarks = window._landmarks_cache
-
-        # 準備資料字典
-        data_dict = {}
-
-        # 提取x, y, z座標
-        x_coords = landmarks[0, 0, :]  # 所有點的x座標
-        y_coords = landmarks[0, 1, :]  # 所有點的y座標
-        z_coords = landmarks[0, 2, :]  # 所有點的z座標
-
-        # 將座標加入字典
-        for i in range(468):
-            data_dict[f"x{i}"] = x_coords[i]
-            data_dict[f"y{i}"] = y_coords[i]
-            data_dict[f"z{i}"] = z_coords[i]
-
-        # 建立DataFrame
-        df_landmarks = pd.DataFrame([data_dict])
-
-        # 保存到CSV檔案
-        output_csv_path = os.path.join(
-            save_parent_folder, f"{patient_id}_landmarks_3d.csv"
-        )
-        df_landmarks.to_csv(output_csv_path, index=False, encoding="utf-8-sig")
-        print(f"三維座標已保存到: {output_csv_path}")
-
-        # 另外保存一個更易讀的格式（每個點一行）
-        readable_data = []
-        for i in range(468):
-            readable_data.append(
-                {"point_index": i, "x": x_coords[i], "y": y_coords[i], "z": z_coords[i]}
-            )
-
-        df_readable = pd.DataFrame(readable_data)
-        readable_csv_path = os.path.join(
-            save_parent_folder, f"{patient_id}_landmarks_readable.csv"
-        )
-        df_readable.to_csv(readable_csv_path, index=False, encoding="utf-8-sig")
-        print(f"易讀格式座標已保存到: {readable_csv_path}")
-    else:
-        print("警告：無法取得landmarks資料")
-
     window.show()
     sys.exit(app.exec())

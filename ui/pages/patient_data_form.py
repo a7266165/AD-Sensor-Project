@@ -6,28 +6,24 @@ parent_dir = os.path.dirname(current_dir)
 grandparent_dir = os.path.dirname(parent_dir)
 sys.path.append(grandparent_dir)
 
-
 import sys
 import os
 from PyQt6 import QtWidgets, QtCore, QtGui
 import pandas as pd
-
-# 處理相對導入問題
-try:
-    # 當從子資料夾直接執行時
-    import ui.styles.patient_data_form_style as styles
-except ModuleNotFoundError:
-    # 當從父資料夾執行時
-    from ui.styles import patient_data_form_style as styles
-
+from ui.styles.patient_data_form_style import (
+BUTTON_STYLE, 
+ PARENT_WIDGET_STYLE, 
+ TITLE_STYLE, 
+ SUBTITLE_STYLE, 
+ LABEL_STYLE, 
+ INPUT_STYLE)
 
 class PatientDataFormWindow(QtWidgets.QFrame):
     def __init__(self):
         super().__init__()
-        # 分離資料結構
-        self.form_fields = {}  # 只存表單欄位元件
-        self.buttons = {}  # 只存按鈕元件
-        self.save_path = None  # 簡化儲存路徑管理
+        self.form_fields = {}
+        self.buttons = {}
+        self.save_path = None
         self._next_callback = None
         self._build_ui()
 
@@ -45,13 +41,13 @@ class PatientDataFormWindow(QtWidgets.QFrame):
         self.title = QtWidgets.QLabel("患者資料表單")
         self.title.setFixedHeight(40)
         self.title.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        self.title.setStyleSheet(styles.TITLE_STYLE)
+        self.title.setStyleSheet(TITLE_STYLE)
         self.root_layout.addWidget(self.title)
 
     # ===== 第二母區塊 - basic information =====
     def _create_basic_info_block(self):
         parent = QtWidgets.QWidget()
-        parent.setStyleSheet(styles.PARENT_WIDGET_STYLE)
+        parent.setStyleSheet(PARENT_WIDGET_STYLE)
         parent.setFixedHeight(200)
         layout = QtWidgets.QVBoxLayout(parent)
         layout.setSpacing(10)
@@ -59,7 +55,7 @@ class PatientDataFormWindow(QtWidgets.QFrame):
         label = QtWidgets.QLabel("基本資料")
         label.setFixedHeight(20)
         label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        label.setStyleSheet(styles.SUBTITLE_STYLE)
+        label.setStyleSheet(SUBTITLE_STYLE)
         layout.addWidget(label)
 
         # 內層填寫區
@@ -71,7 +67,7 @@ class PatientDataFormWindow(QtWidgets.QFrame):
         # 編號（必填）
         self.form_fields["ID"] = QtWidgets.QLineEdit()
         self.form_fields["ID"].setPlaceholderText("請輸入編號（必填）")
-        self.form_fields["ID"].setStyleSheet(styles.INPUT_STYLE)
+        self.form_fields["ID"].setStyleSheet(INPUT_STYLE)
         grid_layout.addWidget(self._make_label("編號 *:"), 0, 0)
         grid_layout.addWidget(self.form_fields["ID"], 0, 1)
 
@@ -80,7 +76,7 @@ class PatientDataFormWindow(QtWidgets.QFrame):
         self.form_fields["cap_date"].setDisplayFormat("yyyy-MM-dd")
         self.form_fields["cap_date"].setDate(QtCore.QDate.currentDate())
         self.form_fields["cap_date"].setCalendarPopup(True)
-        self.form_fields["cap_date"].setStyleSheet(styles.INPUT_STYLE)
+        self.form_fields["cap_date"].setStyleSheet(INPUT_STYLE)
         grid_layout.addWidget(self._make_label("拍攝日期:"), 0, 2)
         grid_layout.addWidget(self.form_fields["cap_date"], 0, 3)
 
@@ -91,7 +87,7 @@ class PatientDataFormWindow(QtWidgets.QFrame):
         self.form_fields["gender"] = QtWidgets.QButtonGroup(self)
         for text, id_ in [("男", 1), ("女", 2)]:
             rb = QtWidgets.QRadioButton(text)
-            rb.setStyleSheet(styles.LABEL_STYLE)
+            rb.setStyleSheet(LABEL_STYLE)
             gender_layout.addWidget(rb)
             self.form_fields["gender"].addButton(rb, id_)
         grid_layout.addWidget(self._make_label("生理性別 *:"), 1, 0)
@@ -102,14 +98,14 @@ class PatientDataFormWindow(QtWidgets.QFrame):
         self.form_fields["birthday"].setDisplayFormat("yyyy-MM-dd")
         self.form_fields["birthday"].setDate(QtCore.QDate(1990, 1, 1))
         self.form_fields["birthday"].setCalendarPopup(True)
-        self.form_fields["birthday"].setStyleSheet(styles.INPUT_STYLE)
+        self.form_fields["birthday"].setStyleSheet(INPUT_STYLE)
         grid_layout.addWidget(self._make_label("生日:"), 1, 2)
         grid_layout.addWidget(self.form_fields["birthday"], 1, 3)
 
         # 教育年數（數值驗證）
         self.form_fields["education_years"] = QtWidgets.QLineEdit()
         self.form_fields["education_years"].setPlaceholderText("請輸入數字 (0-30)")
-        self.form_fields["education_years"].setStyleSheet(styles.INPUT_STYLE)
+        self.form_fields["education_years"].setStyleSheet(INPUT_STYLE)
         # 限制只能輸入數字
         validator = QtGui.QIntValidator(0, 30)
         self.form_fields["education_years"].setValidator(validator)
@@ -122,14 +118,14 @@ class PatientDataFormWindow(QtWidgets.QFrame):
     # ===== 第三母區塊 - 6QDS =====
     def _create_q6ds_block(self):
         parent = QtWidgets.QWidget()
-        parent.setStyleSheet(styles.PARENT_WIDGET_STYLE)
+        parent.setStyleSheet(PARENT_WIDGET_STYLE)
         parent.setFixedHeight(150)
         layout = QtWidgets.QGridLayout(parent)
         layout.setSpacing(10)
 
         title = QtWidgets.QLabel("6QDS 量表 (評分範圍: 0-5)")
         title.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        title.setStyleSheet(styles.LABEL_STYLE)
+        title.setStyleSheet(LABEL_STYLE)
         layout.addWidget(title, 0, 0, 1, 10)
 
         # 6QDS 評分欄位
@@ -137,9 +133,8 @@ class PatientDataFormWindow(QtWidgets.QFrame):
             layout.addWidget(self._make_label(f"q{i}:"), 1, i - 1)
             q_input = QtWidgets.QLineEdit()
             q_input.setPlaceholderText("0-5")
-            q_input.setStyleSheet(styles.INPUT_STYLE)
-            # 限制評分範圍 0-5
-            validator = QtGui.QIntValidator(0, 5)
+            q_input.setStyleSheet(INPUT_STYLE)
+            validator = QtGui.QIntValidator(0, 5)  # 限制評分範圍 0-5
             q_input.setValidator(validator)
             layout.addWidget(q_input, 2, i - 1)
             self.form_fields[f"q{i}"] = q_input
@@ -149,7 +144,7 @@ class PatientDataFormWindow(QtWidgets.QFrame):
     # ===== 第四母區塊 - save path =====
     def _create_save_path_block(self):
         parent = QtWidgets.QWidget()
-        parent.setStyleSheet(styles.PARENT_WIDGET_STYLE)
+        parent.setStyleSheet(PARENT_WIDGET_STYLE)
         parent.setFixedHeight(80)
         layout = QtWidgets.QGridLayout(parent)
         layout.setSpacing(10)
@@ -157,7 +152,7 @@ class PatientDataFormWindow(QtWidgets.QFrame):
         self.save_path_input = QtWidgets.QLineEdit()
         self.save_path_input.setReadOnly(True)
         self.save_path_input.setPlaceholderText("請選擇儲存資料夾")
-        self.save_path_input.setStyleSheet(styles.INPUT_STYLE)
+        self.save_path_input.setStyleSheet(INPUT_STYLE)
         layout.addWidget(self._make_label("儲存路徑 *:"), 0, 0)
         layout.addWidget(self.save_path_input, 0, 1)
 
@@ -170,17 +165,17 @@ class PatientDataFormWindow(QtWidgets.QFrame):
         layout.setSpacing(15)
 
         self.buttons["save_folder"] = QtWidgets.QPushButton("選擇儲存資料夾")
-        self.buttons["save_folder"].setStyleSheet(styles.BUTTON_STYLE)
+        self.buttons["save_folder"].setStyleSheet(BUTTON_STYLE)
         self.buttons["save_folder"].clicked.connect(self.open_save_folder)
         layout.addWidget(self.buttons["save_folder"], 0, 0)
 
         self.buttons["clear"] = QtWidgets.QPushButton("清除全部")
-        self.buttons["clear"].setStyleSheet(styles.BUTTON_STYLE)
+        self.buttons["clear"].setStyleSheet(BUTTON_STYLE)
         self.buttons["clear"].clicked.connect(self.clear_data)
         layout.addWidget(self.buttons["clear"], 0, 1)
 
         self.buttons["next"] = QtWidgets.QPushButton("儲存並下一步")
-        self.buttons["next"].setStyleSheet(styles.BUTTON_STYLE)
+        self.buttons["next"].setStyleSheet(BUTTON_STYLE)
         self.buttons["next"].clicked.connect(self._on_next)
         layout.addWidget(self.buttons["next"], 0, 3)
 
@@ -189,7 +184,7 @@ class PatientDataFormWindow(QtWidgets.QFrame):
     # ===== 以下為輔助函數 =====
     def _make_label(self, text):
         lbl = QtWidgets.QLabel(text)
-        lbl.setStyleSheet(styles.LABEL_STYLE)
+        lbl.setStyleSheet(LABEL_STYLE)
         return lbl
 
     def open_save_folder(self):
@@ -341,7 +336,6 @@ class PatientDataFormWindow(QtWidgets.QFrame):
                 self, "儲存失敗", f"儲存時發生錯誤：\n{str(e)}"
             )
             return False
-
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication(sys.argv)

@@ -115,7 +115,7 @@ def get_frames(cam, face_cascade):
 
 # 測試用
 if __name__ == "__main__":
-    # 載入 Haar cascade xml (請確認路徑正確)
+    # 載入 Haar cascade xml
     xml_path = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
     face_cascade = cv2.CascadeClassifier(xml_path)
 
