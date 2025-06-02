@@ -19,12 +19,18 @@ BUTTON_STYLE,
  INPUT_STYLE)
 
 class PatientDataFormWindow(QtWidgets.QFrame):
+
+    # 添加信號定義
+    data_ready = QtCore.pyqtSignal(dict)  # 數據準備就緒信號
+    validation_failed = QtCore.pyqtSignal(str)  # 驗證失敗信號
+    data_saved = QtCore.pyqtSignal(str)  # 數據保存成功信號
+    save_failed = QtCore.pyqtSignal(str)  # 保存失敗信號
+
     def __init__(self):
         super().__init__()
         self.form_fields = {}
         self.buttons = {}
         self.save_path = None
-        self._next_callback = None
         self._build_ui()
 
     # ===== UI =====
@@ -230,26 +236,23 @@ class PatientDataFormWindow(QtWidgets.QFrame):
                 elif field_name == "birthday":
                     widget.setDate(QtCore.QDate(1990, 1, 1))
 
-    def set_next_callback(self, callback):
-        """設定下一步按鈕的回調函數"""
-        self._next_callback = callback
-
     def _on_next(self):
-        """處理下一步按鈕點擊"""
+        """處理下一步按鈕點擊 - 修改為使用信號"""
         # 驗證資料
         validation_errors = self.validate_data()
         if validation_errors:
             error_message = "請修正以下問題：\n\n" + "\n".join(
                 f"• {error}" for error in validation_errors
             )
-            QtWidgets.QMessageBox.warning(self, "資料驗證失敗", error_message)
+            # 發射驗證失敗信號
+            self.validation_failed.emit(error_message)
             return
 
         # 儲存資料
         if self.save_data():
-            # 執行回調函數
-            if callable(self._next_callback):
-                self._next_callback()
+            # 獲取數據並發射信號
+            data = self.get_data()
+            self.data_ready.emit(data)  # 發射數據準備就緒信號
 
     def validate_data(self):
         """驗證表單資料"""
@@ -316,25 +319,18 @@ class PatientDataFormWindow(QtWidgets.QFrame):
                 file_path, mode=mode, header=header, index=False, encoding="utf-8-sig"
             )
 
-            # 顯示成功訊息
-            QtWidgets.QMessageBox.information(
-                self, "儲存成功", f"患者資料已成功儲存至：\n{file_path}"
-            )
-
+            # 發射保存成功信號
+            self.data_saved.emit(f"患者資料已成功儲存至：\n{file_path}")
             return True
 
         except PermissionError:
-            QtWidgets.QMessageBox.critical(
-                self,
-                "儲存失敗",
-                "沒有權限寫入指定的資料夾，請檢查資料夾權限或選擇其他位置",
-            )
+            error_msg = "沒有權限寫入指定的資料夾，請檢查資料夾權限或選擇其他位置"
+            self.save_failed.emit(error_msg)
             return False
 
         except Exception as e:
-            QtWidgets.QMessageBox.critical(
-                self, "儲存失敗", f"儲存時發生錯誤：\n{str(e)}"
-            )
+            error_msg = f"儲存時發生錯誤：\n{str(e)}"
+            self.save_failed.emit(error_msg)
             return False
 
 if __name__ == "__main__":
