@@ -1,9 +1,11 @@
 __pycache__
 .venv
-*.lock
-*.toml
 *.csv
 *.mp4
 *.png
 *.avi
 *.jpg
+*.xlsx
+!data/symmetry_all_pairs.csv
+!_images/UI/*.png
+!_images/UI_alpha/*.png
