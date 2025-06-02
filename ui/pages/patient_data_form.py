@@ -19,117 +19,119 @@ BUTTON_STYLE,
  INPUT_STYLE)
 
 class PatientDataFormWindow(QtWidgets.QFrame):
-
-    # 添加信號定義
-    data_ready = QtCore.pyqtSignal(dict)  # 數據準備就緒信號
-    validation_failed = QtCore.pyqtSignal(str)  # 驗證失敗信號
-    data_saved = QtCore.pyqtSignal(str)  # 數據保存成功信號
-    save_failed = QtCore.pyqtSignal(str)  # 保存失敗信號
+    data_ready = QtCore.pyqtSignal(dict) 
+    validation_failed = QtCore.pyqtSignal(str)
+    data_saved = QtCore.pyqtSignal(str)
+    save_failed = QtCore.pyqtSignal(str)
 
     def __init__(self):
         super().__init__()
+        self._init_window()
+        self._init_attributes()
+        self._init_ui()
+
+    def _init_window(self):
+        self.setWindowTitle("患者資料表單")
+        self.resize(600, 600)
+
+    def _init_attributes(self):
         self.form_fields = {}
         self.buttons = {}
         self.save_path = None
-        self._build_ui()
 
-    # ===== UI =====
-    def _build_ui(self):
-        self.root_layout = QtWidgets.QVBoxLayout(self)
+    # ===== UI ===== #
+    def _init_ui(self):
+        self.root_layout = QtWidgets.QVBoxLayout(self) # (layer 0)
         self._create_title_block()
-        self._create_basic_info_block()
+        self._create_basic_info_block() 
         self._create_q6ds_block()
         self._create_save_path_block()
-        self._create_buttons_block()
+        self._create_buttons_block() 
 
-    # ===== 第一母區塊 - title =====
+    # ===== 第一母區塊 - title ===== # (layer 1)
     def _create_title_block(self):
-        self.title = QtWidgets.QLabel("患者資料表單")
-        self.title.setFixedHeight(40)
-        self.title.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        self.title.setStyleSheet(TITLE_STYLE)
-        self.root_layout.addWidget(self.title)
+        title_block = QtWidgets.QLabel("患者資料表單")
+        title_block.setFixedHeight(40)
+        title_block.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        title_block.setStyleSheet(TITLE_STYLE)
+        self.root_layout.addWidget(title_block)
 
-    # ===== 第二母區塊 - basic information =====
+    # ===== 第二母區塊 - basic information ===== # (layer 1)
     def _create_basic_info_block(self):
-        parent = QtWidgets.QWidget()
-        parent.setStyleSheet(PARENT_WIDGET_STYLE)
-        parent.setFixedHeight(200)
-        layout = QtWidgets.QVBoxLayout(parent)
-        layout.setSpacing(10)
+        # 建立基本資料區塊根容器
+        basic_info_block = QtWidgets.QWidget()
+        basic_info_block.setStyleSheet(PARENT_WIDGET_STYLE)
+        basic_info_block.setFixedHeight(200)
 
-        label = QtWidgets.QLabel("基本資料")
-        label.setFixedHeight(20)
-        label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
-        label.setStyleSheet(SUBTITLE_STYLE)
-        layout.addWidget(label)
+        basic_info_block_layout = QtWidgets.QVBoxLayout(basic_info_block)
+        basic_info_block_layout.setSpacing(10)
 
-        # 內層填寫區
-        grid_widget = QtWidgets.QWidget()
-        grid_widget.setStyleSheet("border: 0px; background-color: transparent;")
-        grid_layout = QtWidgets.QGridLayout(grid_widget)
-        grid_layout.setSpacing(10)
+        basic_info_block_label = QtWidgets.QLabel("基本資料")  # (layer 2)
+        basic_info_block_label.setFixedHeight(20)
+        basic_info_block_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        basic_info_block_label.setStyleSheet(SUBTITLE_STYLE)
+        basic_info_block_layout.addWidget(basic_info_block_label)
 
-        # 編號（必填）
-        self.form_fields["ID"] = QtWidgets.QLineEdit()
+        basic_info_grid_block = QtWidgets.QWidget()  # (layer 2)
+        basic_info_grid_block.setStyleSheet("border: 0px; background-color: transparent;")
+        basic_info_grid_layout = QtWidgets.QGridLayout(basic_info_grid_block)
+        basic_info_grid_layout.setSpacing(10)
+
+        self.form_fields["ID"] = QtWidgets.QLineEdit()  # (layer 3)
         self.form_fields["ID"].setPlaceholderText("請輸入編號（必填）")
         self.form_fields["ID"].setStyleSheet(INPUT_STYLE)
-        grid_layout.addWidget(self._make_label("編號 *:"), 0, 0)
-        grid_layout.addWidget(self.form_fields["ID"], 0, 1)
+        basic_info_grid_layout.addWidget(self._make_label("編號 *:"), 0, 0)
+        basic_info_grid_layout.addWidget(self.form_fields["ID"], 0, 1)
 
-        # 拍攝日期
-        self.form_fields["cap_date"] = QtWidgets.QDateEdit()
+        self.form_fields["cap_date"] = QtWidgets.QDateEdit()  # (layer 3)
         self.form_fields["cap_date"].setDisplayFormat("yyyy-MM-dd")
         self.form_fields["cap_date"].setDate(QtCore.QDate.currentDate())
         self.form_fields["cap_date"].setCalendarPopup(True)
         self.form_fields["cap_date"].setStyleSheet(INPUT_STYLE)
-        grid_layout.addWidget(self._make_label("拍攝日期:"), 0, 2)
-        grid_layout.addWidget(self.form_fields["cap_date"], 0, 3)
+        basic_info_grid_layout.addWidget(self._make_label("拍攝日期:"), 0, 2)
+        basic_info_grid_layout.addWidget(self.form_fields["cap_date"], 0, 3)
 
-        # 性別（必填）
-        gender_widget = QtWidgets.QWidget()
-        gender_widget.setStyleSheet("border: 0px; background-color: transparent;")
-        gender_layout = QtWidgets.QHBoxLayout(gender_widget)
-        self.form_fields["gender"] = QtWidgets.QButtonGroup(self)
+        basic_info_gender_block = QtWidgets.QWidget()  # (layer 3)
+        basic_info_gender_block.setStyleSheet("border: 0px; background-color: transparent;")
+        basic_info_gender_layout = QtWidgets.QHBoxLayout(basic_info_gender_block)
+        self.form_fields["gender"] = QtWidgets.QButtonGroup(self)  # (layer 3)
         for text, id_ in [("男", 1), ("女", 2)]:
             rb = QtWidgets.QRadioButton(text)
             rb.setStyleSheet(LABEL_STYLE)
-            gender_layout.addWidget(rb)
+            basic_info_gender_layout.addWidget(rb)
             self.form_fields["gender"].addButton(rb, id_)
-        grid_layout.addWidget(self._make_label("生理性別 *:"), 1, 0)
-        grid_layout.addWidget(gender_widget, 1, 1)
+        basic_info_grid_layout.addWidget(self._make_label("生理性別 *:"), 1, 0)
+        basic_info_grid_layout.addWidget(basic_info_gender_block, 1, 1)
 
-        # 生日
-        self.form_fields["birthday"] = QtWidgets.QDateEdit()
+        self.form_fields["birthday"] = QtWidgets.QDateEdit()  # (layer 3)
         self.form_fields["birthday"].setDisplayFormat("yyyy-MM-dd")
         self.form_fields["birthday"].setDate(QtCore.QDate(1990, 1, 1))
         self.form_fields["birthday"].setCalendarPopup(True)
         self.form_fields["birthday"].setStyleSheet(INPUT_STYLE)
-        grid_layout.addWidget(self._make_label("生日:"), 1, 2)
-        grid_layout.addWidget(self.form_fields["birthday"], 1, 3)
+        basic_info_grid_layout.addWidget(self._make_label("生日:"), 1, 2)
+        basic_info_grid_layout.addWidget(self.form_fields["birthday"], 1, 3)
 
-        # 教育年數（數值驗證）
-        self.form_fields["education_years"] = QtWidgets.QLineEdit()
+        self.form_fields["education_years"] = QtWidgets.QLineEdit()  # (layer 3)
         self.form_fields["education_years"].setPlaceholderText("請輸入數字 (0-30)")
         self.form_fields["education_years"].setStyleSheet(INPUT_STYLE)
-        # 限制只能輸入數字
-        validator = QtGui.QIntValidator(0, 30)
-        self.form_fields["education_years"].setValidator(validator)
-        grid_layout.addWidget(self._make_label("教育年數:"), 2, 0)
-        grid_layout.addWidget(self.form_fields["education_years"], 2, 1)
+        basic_validator = QtGui.QIntValidator(0, 30)  # 限制輸入為 0-30 的整數
+        self.form_fields["education_years"].setValidator(basic_validator)
+        basic_info_grid_layout.addWidget(self._make_label("教育年數:"), 2, 0)
+        basic_info_grid_layout.addWidget(self.form_fields["education_years"], 2, 1)
 
-        layout.addWidget(grid_widget)
-        self.root_layout.addWidget(parent)
+        basic_info_block_layout.addWidget(basic_info_grid_block)
+        self.root_layout.addWidget(basic_info_block)
 
-    # ===== 第三母區塊 - 6QDS =====
+
+    # ===== 第三母區塊 - 6QDS ===== # (layer 1)
     def _create_q6ds_block(self):
-        parent = QtWidgets.QWidget()
-        parent.setStyleSheet(PARENT_WIDGET_STYLE)
-        parent.setFixedHeight(150)
-        layout = QtWidgets.QGridLayout(parent)
+        q6ds_block = QtWidgets.QWidget()
+        q6ds_block.setStyleSheet(PARENT_WIDGET_STYLE)
+        q6ds_block.setFixedHeight(150)
+        layout = QtWidgets.QGridLayout(q6ds_block)
         layout.setSpacing(10)
 
-        title = QtWidgets.QLabel("6QDS 量表 (評分範圍: 0-5)")
+        title = QtWidgets.QLabel("6QDS 量表 (評分範圍: 0-5)") # (layer 2)
         title.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
         title.setStyleSheet(LABEL_STYLE)
         layout.addWidget(title, 0, 0, 1, 10)
@@ -137,7 +139,7 @@ class PatientDataFormWindow(QtWidgets.QFrame):
         # 6QDS 評分欄位
         for i in range(1, 11):
             layout.addWidget(self._make_label(f"q{i}:"), 1, i - 1)
-            q_input = QtWidgets.QLineEdit()
+            q_input = QtWidgets.QLineEdit() # (layer 3)
             q_input.setPlaceholderText("0-5")
             q_input.setStyleSheet(INPUT_STYLE)
             validator = QtGui.QIntValidator(0, 5)  # 限制評分範圍 0-5
@@ -145,61 +147,59 @@ class PatientDataFormWindow(QtWidgets.QFrame):
             layout.addWidget(q_input, 2, i - 1)
             self.form_fields[f"q{i}"] = q_input
 
-        self.root_layout.addWidget(parent)
+        self.root_layout.addWidget(q6ds_block)
 
-    # ===== 第四母區塊 - save path =====
+    # ===== 第四母區塊 - save path ===== # (layer 1)
     def _create_save_path_block(self):
-        parent = QtWidgets.QWidget()
-        parent.setStyleSheet(PARENT_WIDGET_STYLE)
-        parent.setFixedHeight(80)
-        layout = QtWidgets.QGridLayout(parent)
+        save_path_block = QtWidgets.QWidget()
+        save_path_block.setStyleSheet(PARENT_WIDGET_STYLE)
+        save_path_block.setFixedHeight(80)
+        layout = QtWidgets.QGridLayout(save_path_block)
         layout.setSpacing(10)
 
-        self.save_path_input = QtWidgets.QLineEdit()
+        self.save_path_input = QtWidgets.QLineEdit() # (layer 2)
         self.save_path_input.setReadOnly(True)
         self.save_path_input.setPlaceholderText("請選擇儲存資料夾")
         self.save_path_input.setStyleSheet(INPUT_STYLE)
         layout.addWidget(self._make_label("儲存路徑 *:"), 0, 0)
         layout.addWidget(self.save_path_input, 0, 1)
 
-        self.root_layout.addWidget(parent)
+        self.root_layout.addWidget(save_path_block)
 
-    # ===== 第五母區塊 - buttons =====
+    # ===== 第五母區塊 - buttons ===== # (layer 1)
     def _create_buttons_block(self):
-        parent = QtWidgets.QWidget()
-        layout = QtWidgets.QGridLayout(parent)
-        layout.setSpacing(15)
+        buttons_block = QtWidgets.QWidget()
+        buttons_layout = QtWidgets.QGridLayout(buttons_block)
+        buttons_layout.setSpacing(15)
 
-        self.buttons["save_folder"] = QtWidgets.QPushButton("選擇儲存資料夾")
+        self.buttons["save_folder"] = QtWidgets.QPushButton("選擇儲存資料夾") # (layer 2)
         self.buttons["save_folder"].setStyleSheet(BUTTON_STYLE)
-        self.buttons["save_folder"].clicked.connect(self.open_save_folder)
-        layout.addWidget(self.buttons["save_folder"], 0, 0)
+        self.buttons["save_folder"].clicked.connect(self._open_save_folder)
+        buttons_layout.addWidget(self.buttons["save_folder"], 0, 0)
 
-        self.buttons["clear"] = QtWidgets.QPushButton("清除全部")
+        self.buttons["clear"] = QtWidgets.QPushButton("清除全部") # (layer 2)
         self.buttons["clear"].setStyleSheet(BUTTON_STYLE)
-        self.buttons["clear"].clicked.connect(self.clear_data)
-        layout.addWidget(self.buttons["clear"], 0, 1)
+        self.buttons["clear"].clicked.connect(self._clear_data)
+        buttons_layout.addWidget(self.buttons["clear"], 0, 1)
 
-        self.buttons["next"] = QtWidgets.QPushButton("儲存並下一步")
+        self.buttons["next"] = QtWidgets.QPushButton("儲存並下一步") # (layer 2)
         self.buttons["next"].setStyleSheet(BUTTON_STYLE)
         self.buttons["next"].clicked.connect(self._on_next)
-        layout.addWidget(self.buttons["next"], 0, 3)
+        buttons_layout.addWidget(self.buttons["next"], 0, 3)
 
-        self.root_layout.addWidget(parent)
+        self.root_layout.addWidget(buttons_block)
 
-    # ===== 以下為輔助函數 =====
+    # ===== 輔助函數 =====
     def _make_label(self, text):
         lbl = QtWidgets.QLabel(text)
         lbl.setStyleSheet(LABEL_STYLE)
         return lbl
 
-    def open_save_folder(self):
-        """選擇儲存資料夾"""
+    def _open_save_folder(self):
         path = QtWidgets.QFileDialog.getExistingDirectory(
             self, "選擇儲存資料夾", os.path.expanduser("~")  # 預設開啟使用者主目錄
         )
         if path:
-            # 檢查資料夾寫入權限
             if os.access(path, os.W_OK):
                 self.save_path = path
                 self.save_path_input.setText(path)
@@ -208,8 +208,7 @@ class PatientDataFormWindow(QtWidgets.QFrame):
                     self, "權限不足", "選擇的資料夾沒有寫入權限，請選擇其他資料夾"
                 )
 
-    def clear_data(self):
-        """清除所有資料（附確認對話框）"""
+    def _clear_data(self):
         reply = QtWidgets.QMessageBox.question(
             self,
             "確認清除",
@@ -223,7 +222,6 @@ class PatientDataFormWindow(QtWidgets.QFrame):
             self._clear_form_fields()
 
     def _clear_form_fields(self):
-        """實際清除表單欄位的方法"""
         for field_name, widget in self.form_fields.items():
             if isinstance(widget, QtWidgets.QLineEdit):
                 widget.clear()
@@ -237,27 +235,23 @@ class PatientDataFormWindow(QtWidgets.QFrame):
                     widget.setDate(QtCore.QDate(1990, 1, 1))
 
     def _on_next(self):
-        """處理下一步按鈕點擊 - 修改為使用信號"""
         # 驗證資料
-        validation_errors = self.validate_data()
+        validation_errors = self._validate_data()
         if validation_errors:
             error_message = "請修正以下問題：\n\n" + "\n".join(
                 f"• {error}" for error in validation_errors
             )
-            # 發射驗證失敗信號
             self.validation_failed.emit(error_message)
             return
 
         # 儲存資料
-        if self.save_data():
-            # 獲取數據並發射信號
-            data = self.get_data()
-            self.data_ready.emit(data)  # 發射數據準備就緒信號
+        if self._save_data():
+            data = self._get_data()
+            self.data_ready.emit(data)
 
-    def validate_data(self):
-        """驗證表單資料"""
+    def _validate_data(self):
         errors = []
-        data = self.get_data()
+        data = self._get_data()
 
         # 檢查必填欄位
         if not data.get("ID", "").strip():
@@ -287,8 +281,7 @@ class PatientDataFormWindow(QtWidgets.QFrame):
 
         return errors
 
-    def get_data(self):
-        """獲取表單資料"""
+    def _get_data(self):
         data = {}
         for field_name, widget in self.form_fields.items():
             if isinstance(widget, QtWidgets.QLineEdit):
@@ -301,10 +294,9 @@ class PatientDataFormWindow(QtWidgets.QFrame):
 
         return data
 
-    def save_data(self):
-        """儲存資料到 CSV 檔案"""
+    def _save_data(self):
         try:
-            data = self.get_data()
+            data = self._get_data()
             df = pd.DataFrame([data])
 
             file_path = os.path.join(self.save_path, "AD_patient_data.csv")
