@@ -6,8 +6,12 @@ def load_patient_data(csv_path, patient_id):
     """載入病患資料"""
     try:
         df = pd.read_csv(csv_path, encoding="utf-8-sig")
-        row = df[df["ID"] == patient_id]
-
+        
+        # 將 ID 欄位轉換為字串，並將查詢的 patient_id 也轉為字串
+        df["ID"] = df["ID"].astype(str)
+        patient_id_str = str(patient_id)
+        
+        row = df[df["ID"] == patient_id_str]
         if row.empty:
             raise ValueError(f"找不到病患ID: {patient_id}")
 

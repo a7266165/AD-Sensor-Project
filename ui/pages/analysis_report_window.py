@@ -37,7 +37,6 @@ class AnalysisReportWindow(QtWidgets.QFrame):
         self.csv_path = csv_path
         self.symmetry_csv_path = symmetry_csv_path
         self.model_path = model_path
-        self._landmarks_cache = None  # 測試用，之後要移除
 
         self._init_window()
         self._init_ui()
