@@ -1,14 +1,32 @@
-# api
+# Face Analysis API
 
-API of AD face analysis, support
-Input a compressed file with the format of .7z/.rar/.zip
-Output a json:
+## Overview
+A RESTful API for Alzheimer's Disease (AD) facial asymmetry analysis using computer vision and machine learning techniques.
+
+## Features
+- 🔍 **Automated face detection** using MediaPipe FaceMesh (468 landmarks)
+- 📊 **Asymmetry classification** powered by XGBoost machine learning model
+- 🖼️ **Visual analysis** with marked facial landmarks and symmetry lines
+- 📦 **Multi-format support** for compressed image archives
+
+## Input
+Upload a compressed archive containing facial photographs:
+- **Supported formats**: `.zip`, `.7z`, `.rar`
+- **File size limit**: 50MB
+- **Image formats**: JPG, JPEG, PNG, BMP, TIFF
+- **Recommended**: 5-20 front-facing photos for optimal accuracy
+
+## Output
+Returns a JSON response with analysis results:
+
+```json
 {
-  "success": ,
-  "error": ,
-  "asymmetry_classification_result": ,
-  "marked_figure": 
+  "success": true,
+  "error": null,
+  "asymmetry_classification_result": 0.85,
+  "marked_figure": "data:image/jpeg;base64,/9j/4AAQ..."
 }
+```
 
 ## Project Structure
 ```
