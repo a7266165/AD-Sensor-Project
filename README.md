@@ -58,18 +58,36 @@ AD-Sensor-Project/
    cd AD-Sensor-Project
    ```
 
-2. **Create Python environment**
+2. **Install Poetry for dependency management** (Skip if already installed)
    ```bash
-   python -m venv venv
-   # Windows
-   venv\Scripts\activate
-   # macOS/Linux
-   source venv/bin/activate
-   ```
-
-3. **Install dependencies**
-   ```bash
+   # Create poetry environment
+   conda create -n poetry python=3.11
+   
+   # Activate the poetry environment
+   conda activate poetry
+   
+   # Install poetry in this environment
    pip install poetry
+   
+   # Add poetry to PATH (optional but recommended)
+   # For Windows:
+   # Add the poetry installation path to your system PATH environment variable
+   # Typical path: C:\Users\[YourUsername]\anaconda3\envs\poetry\Scripts
+   
+   # For macOS/Linux:
+   # Add to your ~/.bashrc or ~/.zshrc:
+   # export PATH="$HOME/anaconda3/envs/poetry/bin:$PATH"
+
+
+3. **Create work environment and install dependencies**
+   ```bash
+   # Create project environment
+   conda create -n env_AD python=3.11
+
+   # Activate project environment
+   conda activate env_AD
+
+   # Using Poetry to install project dependencies 
    poetry install --no-root
    ```
 
