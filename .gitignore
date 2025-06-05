@@ -6,6 +6,7 @@ __pycache__
 *.avi
 *.jpg
 *.xlsx
+*.7z
 !data/symmetry_all_pairs.csv
 !_images/UI/*.png
 !_images/UI_alpha/*.png
