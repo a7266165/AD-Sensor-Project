@@ -1,7 +1,14 @@
 # api
 
-API of AD detecting
-
+API of AD face analysis, support
+Input a compressed file with the format of .7z/.rar/.zip
+Output a json:
+{
+  "success": ,
+  "error": ,
+  "asymmetry_classification_result": ,
+  "marked_figure": 
+}
 
 ## Project Structure
 ```

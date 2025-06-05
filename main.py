@@ -1,31 +1,49 @@
+"""
+人臉分析API - 修正版本
+快速修正 NoneType 錯誤
+"""
+
 import os
 import cv2
 import numpy as np
 import pandas as pd
 import zipfile
 import tempfile
-import shutil
-from typing import Dict, List, Tuple, Optional, Union
+from typing import Dict, List, Optional
 import mediapipe as mp
 import json
 import xgboost as xgb
 import base64
+from fastapi import FastAPI, File, UploadFile
+import uvicorn
+from pydantic import BaseModel
+
+# 多格式壓縮檔支援
+try:
+    import py7zr
+    HAS_7Z_SUPPORT = True
+except ImportError:
+    HAS_7Z_SUPPORT = False
+
+try:
+    import rarfile
+    HAS_RAR_SUPPORT = True
+except ImportError:
+    HAS_RAR_SUPPORT = False
+
+
+class AnalysisResponse(BaseModel):
+    """API 回應模型"""
+    success: bool
+    error: Optional[str] = None
+    asymmetry_classification_result: Optional[float] = None
+    marked_figure: Optional[str] = None
+
 
 class FaceAnalysisAPI:
-    """
-    人臉分析API類別
-    輸入：相片壓縮檔
-    輸出：FaceMesh特徵點座標和不對稱性指標
-    """
+    """人臉分析API類別"""
     
     def __init__(self, symmetry_csv_path: str = None, xgb_model_path: str = None):
-        """
-        初始化API
-        
-        Args:
-            symmetry_csv_path: 對稱性配對CSV檔案路徑
-            xgb_model_path: XGBoost模型檔案路徑
-        """
         # 初始化MediaPipe FaceMesh
         self.mp_face_mesh = mp.solutions.face_mesh
         self.face_mesh = self.mp_face_mesh.FaceMesh(
@@ -55,21 +73,12 @@ class FaceAnalysisAPI:
             (1, 19), (19, 94), (94, 2),
         ]
 
-    def analyze_from_zip(self, zip_file_path: str) -> Dict:
-        """
-        從壓縮檔分析人臉
-        
-        Args:
-            zip_file_path: 壓縮檔路徑
-            
-        Returns:
-            Dict: 包含landmarks和symmetry_metrics的結果
-        """
-        # 創建臨時目錄
+    def analyze_from_archive(self, archive_file_path: str) -> Dict:
+        """從壓縮檔分析人臉"""
         with tempfile.TemporaryDirectory() as temp_dir:
             try:
                 # 解壓縮檔案
-                extracted_dir = self._extract_zip_file(zip_file_path, temp_dir)
+                extracted_dir = self._extract_archive_file(archive_file_path, temp_dir)
                 
                 # 分析人臉
                 result = self._analyze_face_from_folder(extracted_dir)
@@ -84,26 +93,36 @@ class FaceAnalysisAPI:
                     "marked_figure": None
                 }
 
-    def analyze_from_folder(self, folder_path: str) -> Dict:
-        """
-        從資料夾分析人臉
+    def _extract_archive_file(self, archive_file_path: str, extract_to: str) -> str:
+        """解壓縮檔案 - 支援 ZIP, 7Z, RAR 格式"""
+        file_extension = os.path.splitext(archive_file_path)[1].lower()
         
-        Args:
-            folder_path: 包含相片的資料夾路徑
-            
-        Returns:
-            Dict: 包含landmarks和symmetry_metrics的結果
-        """
-        return self._analyze_face_from_folder(folder_path)
-
-    def _extract_zip_file(self, zip_file_path: str, extract_to: str) -> str:
-        """解壓縮檔案"""
-        with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
-            zip_ref.extractall(extract_to)
+        try:
+            if file_extension == '.zip':
+                with zipfile.ZipFile(archive_file_path, 'r') as archive_ref:
+                    archive_ref.extractall(extract_to)
+                    
+            elif file_extension == '.7z':
+                if not HAS_7Z_SUPPORT:
+                    raise ValueError("需要安裝 py7zr 套件才能支援 7Z 格式：pip install py7zr")
+                with py7zr.SevenZipFile(archive_file_path, mode='r') as archive_ref:
+                    archive_ref.extractall(extract_to)
+                    
+            elif file_extension == '.rar':
+                if not HAS_RAR_SUPPORT:
+                    raise ValueError("需要安裝 rarfile 套件才能支援 RAR 格式：pip install rarfile")
+                with rarfile.RarFile(archive_file_path, 'r') as archive_ref:
+                    archive_ref.extractall(extract_to)
+                    
+            else:
+                raise ValueError(f"不支援的壓縮格式：{file_extension}")
+                
+        except Exception as e:
+            raise ValueError(f"解壓縮失敗：{str(e)}")
         
         # 找到包含圖片的資料夾
         for root, dirs, files in os.walk(extract_to):
-            jpg_files = [f for f in files if f.lower().endswith(('.jpg', '.jpeg', '.png'))]
+            jpg_files = [f for f in files if f.lower().endswith(('.jpg', '.jpeg', '.png', '.bmp', '.tiff'))]
             if jpg_files:
                 return root
         
@@ -167,9 +186,9 @@ class FaceAnalysisAPI:
 
     def _angle_between(self, v1: np.ndarray, v2: np.ndarray) -> float:
         """計算兩向量之間的夾角（單位：度）"""
-        return np.degrees(
-            np.arccos(np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2)))
-        )
+        cos_angle = np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))
+        cos_angle = np.clip(cos_angle, -1.0, 1.0)  # 避免數值誤差
+        return np.degrees(np.arccos(cos_angle))
 
     def _calc_intermediate_angle_sum(self, results, height: int, width: int) -> float:
         """計算中間兩個夾角的總和"""
@@ -393,15 +412,7 @@ class FaceAnalysisAPI:
             return None
 
     def _predict_asymmetry(self, symmetry_metrics: Dict) -> Optional[float]:
-        """
-        使用XGBoost模型預測不對稱性分類結果
-        
-        Args:
-            symmetry_metrics: 對稱性指標字典
-            
-        Returns:
-            預測結果（機率值或分類結果）
-        """
+        """使用XGBoost模型預測不對稱性分類結果"""
         if not self.xgb_model or not symmetry_metrics:
             return None
             
@@ -428,15 +439,7 @@ class FaceAnalysisAPI:
             return None
 
     def _generate_marked_figure(self, image: np.ndarray) -> Optional[str]:
-        """
-        生成帶有特徵點標記的圖片，並轉換為base64字串
-        
-        Args:
-            image: 輸入圖片
-            
-        Returns:
-            base64編碼的圖片字串
-        """
+        """生成帶有特徵點標記的圖片，並轉換為base64字串"""
         try:
             marked_image = self._get_face_with_landmarks_from_image(image)
             if marked_image is None:
@@ -455,15 +458,30 @@ class FaceAnalysisAPI:
             return None
 
     def _get_face_with_landmarks_from_image(self, image: np.ndarray) -> Optional[np.ndarray]:
-        """
-        從已經轉正的圖片獲取帶有特徵點標記的人臉圖片（只截取人臉部分）
+        """從已經轉正的圖片獲取帶有特徵點標記的人臉圖片（只截取人臉部分）"""
+        height, width = image.shape[:2]
         
-        Args:
-            image: 已經轉正的圖片
-            
-        Returns:
-            標記了特徵點的圖片（只包含人臉部分）
-        """
+        # 檢測特徵點
+        results = self.face_mesh.process(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+        if not results.multi_face_landmarks:
+            return image
+        
+        # 獲取原始特徵點位置
+        original_landmarks = results.multi_face_landmarks[0].landmark
+        
+        # 根據特定的特徵點來確定裁剪範圍
+        left_x = original_landmarks[234].x * width
+        right_x = original_landmarks[454].x * width
+        top_y = original_landmarks[10].y * height
+        bottom_y = original_landmarks[152].y * height
+        
+        # 添加一些邊距
+        margin = 5
+        left = max(0, int(left_x - margin))
+        right = min(width, int(right_x + margin))
+        top = max(0, int(top_y - margin))
+    def _get_face_with_landmarks_from_image(self, image: np.ndarray) -> Optional[np.ndarray]:
+        """從已經轉正的圖片獲取帶有特徵點標記的人臉圖片（只截取人臉部分）"""
         height, width = image.shape[:2]
         
         # 檢測特徵點
@@ -549,21 +567,8 @@ class FaceAnalysisAPI:
         return image_with_landmarks
 
 
-# FastAPI 封裝
-from fastapi import FastAPI, File, UploadFile, HTTPException
-from fastapi.responses import JSONResponse
-import uvicorn
-from pydantic import BaseModel
-
-class AnalysisResponse(BaseModel):
-    """API 回應模型"""
-    success: bool
-    error: Optional[str] = None
-    asymmetry_classification_result: Optional[float] = None
-    marked_figure: Optional[str] = None
-
 class FaceAnalysisFastAPI:
-    """FastAPI 封裝"""
+    """FastAPI 服務封裝"""
     
     def __init__(self, symmetry_csv_path: str = None, xgb_model_path: str = None):
         self.app = FastAPI(
@@ -572,9 +577,9 @@ class FaceAnalysisFastAPI:
             version="1.0.0"
         )
         self.analyzer = FaceAnalysisAPI(symmetry_csv_path, xgb_model_path)
-        self.setup_routes()
-        
-    def setup_routes(self):
+        self._setup_routes()
+    
+    def _setup_routes(self):
         """設定API路由"""
         
         @self.app.post("/analyze", response_model=AnalysisResponse, summary="分析人臉不對稱性")
@@ -582,7 +587,7 @@ class FaceAnalysisFastAPI:
             """
             分析人臉不對稱性的API端點
             
-            - **file**: 包含人臉相片的ZIP壓縮檔
+            - **file**: 包含人臉相片的壓縮檔（支援 ZIP, 7Z, RAR 格式）
             
             回傳:
             - **success**: 分析是否成功
@@ -590,18 +595,20 @@ class FaceAnalysisFastAPI:
             - **asymmetry_classification_result**: XGBoost模型預測結果
             - **marked_figure**: base64編碼的標記圖片
             """
-            # 檢查檔案類型
-            if not file.filename.lower().endswith('.zip'):
+            # 檢查檔案格式
+            supported_formats = self._get_supported_formats()
+            if not any(file.filename.lower().endswith(fmt) for fmt in supported_formats):
+                available_formats = ', '.join(supported_formats)
                 return AnalysisResponse(
                     success=False,
-                    error="僅支援ZIP檔案",
+                    error=f"支援的格式：{available_formats}。如需其他格式請安裝對應套件。",
                     asymmetry_classification_result=None,
                     marked_figure=None
                 )
             
-            # 檢查檔案大小（例如限制50MB）
+            # 檢查檔案大小
             content = await file.read()
-            if len(content) > 50 * 1024 * 1024:  # 50MB
+            if len(content) > 50 * 1024 * 1024:  # 50MB限制
                 return AnalysisResponse(
                     success=False,
                     error="檔案大小超過50MB限制",
@@ -609,27 +616,8 @@ class FaceAnalysisFastAPI:
                     marked_figure=None
                 )
             
-            # 儲存上傳的檔案並分析
-            try:
-                with tempfile.NamedTemporaryFile(delete=False, suffix='.zip') as temp_file:
-                    temp_file.write(content)
-                    temp_file.flush()
-                    
-                    # 分析人臉
-                    result = self.analyzer.analyze_from_zip(temp_file.name)
-                    
-                    # 清理臨時檔案
-                    os.unlink(temp_file.name)
-                    
-                    return AnalysisResponse(**result)
-                    
-            except Exception as e:
-                return AnalysisResponse(
-                    success=False,
-                    error=f"處理檔案時發生錯誤: {str(e)}",
-                    asymmetry_classification_result=None,
-                    marked_figure=None
-                )
+            # 處理檔案
+            return await self._process_uploaded_file(file.filename, content)
         
         @self.app.get("/health", summary="健康檢查")
         async def health_check():
@@ -637,7 +625,8 @@ class FaceAnalysisFastAPI:
             return {
                 "status": "healthy",
                 "service": "Face Analysis API",
-                "version": "1.0.0"
+                "version": "1.0.0",
+                "supported_formats": self._get_supported_formats()
             }
         
         @self.app.get("/", summary="API資訊")
@@ -647,39 +636,132 @@ class FaceAnalysisFastAPI:
                 "message": "人臉分析API",
                 "docs": "/docs",
                 "health": "/health",
-                "analyze": "/analyze (POST with ZIP file)"
+                "analyze": "/analyze (POST with archive file)",
+                "supported_formats": self._get_supported_formats(),
+                "installation_notes": self._get_installation_notes()
             }
     
-    def run(self, host: str = "0.0.0.0", port: int = 8000, reload: bool = False):
-        """啟動API服務"""
-        uvicorn.run(
-            "face_analysis_api:app" if not reload else self.app,
-            host=host,
-            port=port,
-            reload=reload
-        )
-
-
-# 使用範例
-if __name__ == "__main__":
-    # 方法1：直接使用分析器
-    # analyzer = FaceAnalysisAPI("symmetry_all_pairs.csv", "xgb_face_asym_model.json")
-    # result = analyzer.analyze_from_zip("face_photos.zip")
-    # print(json.dumps(result, indent=2, ensure_ascii=False))
+    def _get_supported_formats(self) -> List[str]:
+        """取得支援的檔案格式"""
+        formats = ['.zip']
+        if HAS_7Z_SUPPORT:
+            formats.append('.7z')
+        if HAS_RAR_SUPPORT:
+            formats.append('.rar')
+        return formats
     
-    # 方法2：啟動FastAPI服務
-    api_server = FaceAnalysisFastAPI("./data/symmetry_all_pairs.csv", "./data/xgb_face_asym_model.json")
-    print("啟動人臉分析FastAPI服務...")
-    print("API端點:")
-    print("  POST /analyze - 上傳ZIP檔案進行人臉分析")
+    def _get_installation_notes(self) -> Dict[str, str]:
+        """取得安裝說明"""
+        return {
+            "7z_support": "已安裝" if HAS_7Z_SUPPORT else "pip install py7zr",
+            "rar_support": "已安裝" if HAS_RAR_SUPPORT else "pip install rarfile"
+        }
+    
+    async def _process_uploaded_file(self, filename: str, content: bytes) -> AnalysisResponse:
+        """處理上傳的檔案"""
+        # 確定檔案副檔名
+        file_ext = self._get_file_extension(filename)
+        
+        # 創建臨時檔案
+        temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=file_ext)
+        temp_file_path = temp_file.name
+        
+        try:
+            # 寫入檔案內容
+            temp_file.write(content)
+            temp_file.flush()
+            temp_file.close()
+            
+            # 分析人臉
+            result = self.analyzer.analyze_from_archive(temp_file_path)
+            return AnalysisResponse(**result)
+            
+        except Exception as e:
+            return AnalysisResponse(
+                success=False,
+                error=f"處理檔案時發生錯誤: {str(e)}",
+                asymmetry_classification_result=None,
+                marked_figure=None
+            )
+        finally:
+            # 清理臨時檔案
+            self._cleanup_temp_file(temp_file_path)
+    
+    def _get_file_extension(self, filename: str) -> str:
+        """取得檔案副檔名"""
+        if filename.lower().endswith('.7z'):
+            return '.7z'
+        elif filename.lower().endswith('.rar'):
+            return '.rar'
+        else:
+            return '.zip'
+    
+    def _cleanup_temp_file(self, file_path: str):
+        """清理臨時檔案"""
+        try:
+            if os.path.exists(file_path):
+                os.unlink(file_path)
+        except Exception as e:
+            print(f"清理臨時檔案時發生錯誤: {e}")
+
+
+# 主程式入口 - 直接初始化app
+def get_file_path(relative_path: str) -> str:
+    """取得檔案的絕對路徑"""
+    if os.path.isabs(relative_path):
+        return relative_path
+    
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(base_dir, relative_path)
+
+def print_startup_info():
+    """顯示啟動資訊"""
+    print("🚀 啟動人臉分析FastAPI服務...")
+    print("\n📋 API端點:")
+    print("  POST /analyze - 上傳壓縮檔案進行人臉分析")
     print("  GET /health - 健康檢查")
     print("  GET / - API資訊")
     print("  GET /docs - Swagger文檔")
     print("  GET /redoc - ReDoc文檔")
-    print("\n回傳格式:")
+    
+    print("\n📊 回傳格式:")
     print("  - success: 布林值，是否成功")
     print("  - error: 錯誤訊息（如有）")
     print("  - asymmetry_classification_result: XGBoost模型預測結果")
     print("  - marked_figure: base64編碼的標記圖片")
-    print("\n服務將在 http://localhost:8000 啟動")
-    api_server.run(reload=True)
+    
+    print("\n📁 支援格式:")
+    formats = ['.zip']
+    if HAS_7Z_SUPPORT:
+        formats.append('.7z')
+    if HAS_RAR_SUPPORT:
+        formats.append('.rar')
+    print(f"  {', '.join(formats)}")
+    
+    print("\n🌐 服務將在 http://localhost:8000 啟動")
+    if not HAS_7Z_SUPPORT:
+        print("💡 提示: 安裝 py7zr 以支援 7Z 格式")
+    if not HAS_RAR_SUPPORT:
+        print("💡 提示: 安裝 rarfile 以支援 RAR 格式")
+
+# 直接在模組層級創建app實例
+print_startup_info()
+
+# 設定檔案路徑
+symmetry_csv_path = get_file_path("./data/symmetry_all_pairs.csv")
+xgb_model_path = get_file_path("./data/xgb_face_asym_model.json")
+
+# 檢查檔案存在性
+if symmetry_csv_path and not os.path.exists(symmetry_csv_path):
+    print(f"警告: 找不到對稱性CSV檔案: {symmetry_csv_path}")
+if xgb_model_path and not os.path.exists(xgb_model_path):
+    print(f"警告: 找不到XGBoost模型檔案: {xgb_model_path}")
+
+# 直接創建全域app實例
+api_server = FaceAnalysisFastAPI(symmetry_csv_path, xgb_model_path)
+app = api_server.app
+
+# 主程式入口
+if __name__ == "__main__":
+    # 啟動服務
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
