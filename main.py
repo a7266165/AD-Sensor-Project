@@ -851,7 +851,7 @@ print_startup_info()
 # 設定檔案路徑
 symmetry_csv_path = get_file_path("./data/symmetry_all_pairs.csv")
 asymmetry_model_path = get_file_path("./data/xgb_face_asym_model.json")
-q6ds_model_path = get_file_path("./data/XGBoost.json")
+q6ds_model_path = get_file_path("./data/xgb_6qds_model.json")
 
 # 檢查檔案存在性
 if symmetry_csv_path and not os.path.exists(symmetry_csv_path):

@@ -105,7 +105,8 @@ api/
 │   ├── .gitignore
 │   ├── haarcascade_frontalface_default.xml
 │   ├── symmetry_all_pairs.csv  # Facial symmetry mapping
-│   └── XGBoost.json            # Pre-trained ML model
+│   ├── xgb_face_asym_model.csv  # Facial symmetry mapping
+│   └── xgb_6qds_model.json            # Pre-trained ML model
 ├── .gitignore                  
 ├── main.py                     # Application entry point
 ├── poetry.lock                 # Locked dependency versions
