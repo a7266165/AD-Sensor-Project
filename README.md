@@ -1,32 +1,102 @@
 # Face Analysis API
 
 ## Overview
-A RESTful API for Alzheimer's Disease (AD) facial asymmetry analysis using computer vision and machine learning techniques.
+ comprehensive RESTful API for Alzheimer's Disease (AD) assessment combining facial asymmetry analysis and cognitive evaluation using computer vision and machine learning techniques.
 
 ## Features
 - 🔍 **Automated face detection** using MediaPipe FaceMesh (468 landmarks)
-- 📊 **Asymmetry classification** powered by XGBoost machine learning model
+- 📊 **Dual ML predictions** powered by XGBoost models:
+  - **6QDS Cognitive Assessment** based on questionnaire responses
+  - **Facial Asymmetry Classification** from facial landmark analysis
 - 🖼️ **Visual analysis** with marked facial landmarks and symmetry lines
 - 📦 **Multi-format support** for compressed image archives
+- 📝 **Integrated questionnaire processing** for comprehensive assessment
 
-## Input
+## Input Requirements
+
+### 1. Compressed Image Archive
 Upload a compressed archive containing facial photographs:
 - **Supported formats**: `.zip`, `.7z`, `.rar`
 - **File size limit**: 50MB
 - **Image formats**: JPG, JPEG, PNG, BMP, TIFF
 - **Recommended**: 5-20 front-facing photos for optimal accuracy
 
+### 2. Questionnaire Data
+Provide demographic and assessment questionnaire responses:
+- **age**: Age in years
+- **gender**: Gender (0: Female, 1: Male)
+- **education_years**: Years of education
+- **q1-q10**: Questionnaire responses (10 questions)
+
 ## Output
-Returns a JSON response with analysis results:
+Returns a JSON response with comprehensive analysis results:
 
 ```json
 {
   "success": true,
   "error": null,
+  "q6ds_classification_result": 0.75,
   "asymmetry_classification_result": 0.85,
   "marked_figure": "data:image/jpeg;base64,/9j/4AAQ..."
 }
 ```
+
+### Response Fields
+| Field | Type | Description |
+|-------|------|-------------|
+| `success` | boolean | Analysis completion status |
+| `error` | string/null | Error message if analysis failed |
+| `q6ds_classification_result` | float/null | 6QDS cognitive assessment prediction (0.0-1.0) |
+| `asymmetry_classification_result` | float/null | Facial asymmetry ML prediction (0.0-1.0) |
+| `marked_figure` | string/null | Base64-encoded image with facial landmarks |
+
+
+## API Usage Examples
+
+### Using curl
+```bash
+curl -X POST "http://localhost:8000/analyze" \
+     -H "Content-Type: multipart/form-data" \
+     -F "file=@face_photos.zip" \
+     -F "age=70" \
+     -F "gender=1" \
+     -F "education_years=12" \
+     -F "q1=1" \
+     -F "q2=0" \
+     -F "q3=1" \
+     -F "q4=1" \
+     -F "q5=0" \
+     -F "q6=1" \
+     -F "q7=0" \
+     -F "q8=1" \
+     -F "q9=0" \
+     -F "q10=1"
+```
+
+### Using Python requests
+```python
+import requests
+
+# Prepare questionnaire data
+questionnaire_data = {
+    "age": 70,
+    "gender": 1,  # Male
+    "education_years": 12,
+    "q1": 1, "q2": 0, "q3": 1, "q4": 1, "q5": 0,
+    "q6": 1, "q7": 0, "q8": 1, "q9": 0, "q10": 1
+}
+
+# Upload file with questionnaire data
+with open("face_photos.zip", "rb") as f:
+    response = requests.post(
+        "http://localhost:8000/analyze",
+        files={"file": f},
+        data=questionnaire_data
+    )
+    result = response.json()
+    print(result)
+```
+
 
 ## Project Structure
 ```
@@ -42,6 +112,13 @@ api/
 ├── pyproject.toml              # Poetry dependencies
 └── README.md
 ```
+
+## API Endpoints
+- `POST /analyze` - Upload photos and questionnaire data for comprehensive analysis
+- `GET /health` - Service health check with supported formats
+- `GET /docs` - Interactive Swagger API documentation
+- `GET /redoc` - Alternative ReDoc API documentation
+- `GET /` - API information and configuration details
 
 ## Installation
 
@@ -98,3 +175,21 @@ api/
 - **Arduino**: Arduino Uno/Mega with LED circuit (optional)
 - **Computer**: not decide
 
+## Development
+
+### Running in Development Mode
+```bash
+# Start with auto-reload
+python main.py
+
+# Access interactive documentation
+# Swagger UI: http://localhost:8000/docs
+# ReDoc: http://localhost:8000/redoc
+```
+
+### API Testing
+Visit `http://localhost:8000/docs` for interactive API testing with Swagger UI, where you can:
+- Upload test image archives
+- Input questionnaire responses
+- View real-time analysis results
+- Download marked facial images

@@ -1,6 +1,6 @@
 """
-人臉分析API - 修正版本
-快速修正 NoneType 錯誤
+人臉分析與認知評估API
+支援多種壓縮格式，提供6QDS認知評估和人臉不對稱性分析
 """
 
 import os
@@ -36,14 +36,32 @@ class AnalysisResponse(BaseModel):
     """API 回應模型"""
     success: bool
     error: Optional[str] = None
+    q6ds_classification_result: Optional[float] = None
     asymmetry_classification_result: Optional[float] = None
     marked_figure: Optional[str] = None
+
+
+class QuestionnaireData(BaseModel):
+    """問卷資料模型"""
+    age: int
+    gender: int  # 0: 女性, 1: 男性
+    education_years: int
+    q1: int
+    q2: int
+    q3: int
+    q4: int
+    q5: int
+    q6: int
+    q7: int
+    q8: int
+    q9: int
+    q10: int
 
 
 class FaceAnalysisAPI:
     """人臉分析API類別"""
     
-    def __init__(self, symmetry_csv_path: str = None, xgb_model_path: str = None):
+    def __init__(self, symmetry_csv_path: str = None, asymmetry_model_path: str = None, q6ds_model_path: str = None):
         # 初始化MediaPipe FaceMesh
         self.mp_face_mesh = mp.solutions.face_mesh
         self.face_mesh = self.mp_face_mesh.FaceMesh(
@@ -55,16 +73,26 @@ class FaceAnalysisAPI:
         )
         
         self.symmetry_csv_path = symmetry_csv_path
-        self.xgb_model_path = xgb_model_path
+        self.asymmetry_model_path = asymmetry_model_path
+        self.q6ds_model_path = q6ds_model_path
         
-        # 載入XGBoost模型
-        self.xgb_model = None
-        if xgb_model_path and os.path.exists(xgb_model_path):
+        # 載入不對稱性XGBoost模型
+        self.asymmetry_model = None
+        if asymmetry_model_path and os.path.exists(asymmetry_model_path):
             try:
-                self.xgb_model = xgb.Booster()
-                self.xgb_model.load_model(xgb_model_path)
+                self.asymmetry_model = xgb.Booster()
+                self.asymmetry_model.load_model(asymmetry_model_path)
             except Exception as e:
-                print(f"載入XGBoost模型失敗: {e}")
+                print(f"載入不對稱性XGBoost模型失敗: {e}")
+        
+        # 載入6QDS XGBoost模型
+        self.q6ds_model = None
+        if q6ds_model_path and os.path.exists(q6ds_model_path):
+            try:
+                self.q6ds_model = xgb.Booster()
+                self.q6ds_model.load_model(q6ds_model_path)
+            except Exception as e:
+                print(f"載入6QDS XGBoost模型失敗: {e}")
         
         # 定義人臉中軸線
         self.FACEMESH_MID_LINE = [
@@ -73,15 +101,15 @@ class FaceAnalysisAPI:
             (1, 19), (19, 94), (94, 2),
         ]
 
-    def analyze_from_archive(self, archive_file_path: str) -> Dict:
-        """從壓縮檔分析人臉"""
+    def analyze_from_archive_and_questionnaire(self, archive_file_path: str, questionnaire_data: QuestionnaireData) -> Dict:
+        """從壓縮檔和問卷資料分析"""
         with tempfile.TemporaryDirectory() as temp_dir:
             try:
                 # 解壓縮檔案
                 extracted_dir = self._extract_archive_file(archive_file_path, temp_dir)
                 
                 # 分析人臉
-                result = self._analyze_face_from_folder(extracted_dir)
+                result = self._analyze_face_from_folder(extracted_dir, questionnaire_data)
                 
                 return result
                 
@@ -89,6 +117,7 @@ class FaceAnalysisAPI:
                 return {
                     "success": False,
                     "error": f"分析失敗: {str(e)}",
+                    "q6ds_classification_result": None,
                     "asymmetry_classification_result": None,
                     "marked_figure": None
                 }
@@ -128,7 +157,7 @@ class FaceAnalysisAPI:
         
         raise ValueError("壓縮檔中未找到圖片檔案")
 
-    def _analyze_face_from_folder(self, folder_path: str) -> Dict:
+    def _analyze_face_from_folder(self, folder_path: str, questionnaire_data: QuestionnaireData = None) -> Dict:
         """從資料夾分析人臉"""
         try:
             # 步驟1: 選擇最正面的照片並轉正
@@ -138,6 +167,7 @@ class FaceAnalysisAPI:
                 return {
                     "success": False,
                     "error": "未找到有效的人臉圖片",
+                    "q6ds_classification_result": None,
                     "asymmetry_classification_result": None,
                     "marked_figure": None
                 }
@@ -149,24 +179,30 @@ class FaceAnalysisAPI:
                 return {
                     "success": False,
                     "error": "無法提取特徵點",
+                    "q6ds_classification_result": None,
                     "asymmetry_classification_result": None,
                     "marked_figure": None
                 }
             
-            # 步驟3: 計算不對稱性指標
-            symmetry_metrics = None
+            # 步驟3: 計算不對稱性指標和預測
             asymmetry_classification = None
             if self.symmetry_csv_path:
                 symmetry_metrics = self._calculate_symmetry_metrics(landmarks)
-                if symmetry_metrics and self.xgb_model:
+                if symmetry_metrics and self.asymmetry_model:
                     asymmetry_classification = self._predict_asymmetry(symmetry_metrics)
             
-            # 步驟4: 生成標記圖片
+            # 步驟4: 6QDS問卷分類預測
+            q6ds_classification = None
+            if questionnaire_data and self.q6ds_model:
+                q6ds_classification = self._predict_6qds(questionnaire_data)
+            
+            # 步驟5: 生成標記圖片
             marked_figure = self._generate_marked_figure(rotated_images[0])
             
             return {
                 "success": True,
                 "error": None,
+                "q6ds_classification_result": q6ds_classification,
                 "asymmetry_classification_result": asymmetry_classification,
                 "marked_figure": marked_figure
             }
@@ -175,6 +211,7 @@ class FaceAnalysisAPI:
             return {
                 "success": False,
                 "error": f"分析過程發生錯誤: {str(e)}",
+                "q6ds_classification_result": None,
                 "asymmetry_classification_result": None,
                 "marked_figure": None
             }
@@ -413,7 +450,7 @@ class FaceAnalysisAPI:
 
     def _predict_asymmetry(self, symmetry_metrics: Dict) -> Optional[float]:
         """使用XGBoost模型預測不對稱性分類結果"""
-        if not self.xgb_model or not symmetry_metrics:
+        if not self.asymmetry_model or not symmetry_metrics:
             return None
             
         try:
@@ -429,13 +466,55 @@ class FaceAnalysisAPI:
             dmatrix = xgb.DMatrix([features])
             
             # 預測
-            prediction = self.xgb_model.predict(dmatrix)
+            prediction = self.asymmetry_model.predict(dmatrix)
             
             # 回傳預測結果（通常是機率值或分類結果）
             return float(prediction[0])
             
         except Exception as e:
-            print(f"XGBoost預測錯誤: {str(e)}")
+            print(f"不對稱性XGBoost預測錯誤: {str(e)}")
+            return None
+
+    def _predict_6qds(self, questionnaire_data: QuestionnaireData) -> Optional[float]:
+        """使用XGBoost模型預測6QDS分類結果"""
+        if not self.q6ds_model:
+            return None
+            
+        try:
+            # 準備輸入特徵：年紀 性別 教育程度yr q1 q2 q3 q4 q5 q6 q7 q8 q9 q10
+            features = [
+                questionnaire_data.age,
+                questionnaire_data.gender,
+                questionnaire_data.education_years,
+                questionnaire_data.q1,
+                questionnaire_data.q2,
+                questionnaire_data.q3,
+                questionnaire_data.q4,
+                questionnaire_data.q5,
+                questionnaire_data.q6,
+                questionnaire_data.q7,
+                questionnaire_data.q8,
+                questionnaire_data.q9,
+                questionnaire_data.q10
+            ]
+            
+            # 定義特徵名稱（與訓練時相同）
+            feature_names = [
+                '年紀', '性別', '教育程度yr', 
+                'q1', 'q2', 'q3', 'q4', 'q5', 'q6', 'q7', 'q8', 'q9', 'q10'
+            ]
+            
+            # 轉換為XGBoost DMatrix格式，包含特徵名稱
+            dmatrix = xgb.DMatrix([features], feature_names=feature_names)
+            
+            # 預測
+            prediction = self.q6ds_model.predict(dmatrix)
+            
+            # 回傳預測結果
+            return float(prediction[0])
+            
+        except Exception as e:
+            print(f"6QDS XGBoost預測錯誤: {str(e)}")
             return None
 
     def _generate_marked_figure(self, image: np.ndarray) -> Optional[str]:
@@ -457,29 +536,6 @@ class FaceAnalysisAPI:
             print(f"生成標記圖片錯誤: {str(e)}")
             return None
 
-    def _get_face_with_landmarks_from_image(self, image: np.ndarray) -> Optional[np.ndarray]:
-        """從已經轉正的圖片獲取帶有特徵點標記的人臉圖片（只截取人臉部分）"""
-        height, width = image.shape[:2]
-        
-        # 檢測特徵點
-        results = self.face_mesh.process(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
-        if not results.multi_face_landmarks:
-            return image
-        
-        # 獲取原始特徵點位置
-        original_landmarks = results.multi_face_landmarks[0].landmark
-        
-        # 根據特定的特徵點來確定裁剪範圍
-        left_x = original_landmarks[234].x * width
-        right_x = original_landmarks[454].x * width
-        top_y = original_landmarks[10].y * height
-        bottom_y = original_landmarks[152].y * height
-        
-        # 添加一些邊距
-        margin = 5
-        left = max(0, int(left_x - margin))
-        right = min(width, int(right_x + margin))
-        top = max(0, int(top_y - margin))
     def _get_face_with_landmarks_from_image(self, image: np.ndarray) -> Optional[np.ndarray]:
         """從已經轉正的圖片獲取帶有特徵點標記的人臉圖片（只截取人臉部分）"""
         height, width = image.shape[:2]
@@ -570,29 +626,49 @@ class FaceAnalysisAPI:
 class FaceAnalysisFastAPI:
     """FastAPI 服務封裝"""
     
-    def __init__(self, symmetry_csv_path: str = None, xgb_model_path: str = None):
+    def __init__(self, symmetry_csv_path: str = None, asymmetry_model_path: str = None, q6ds_model_path: str = None):
         self.app = FastAPI(
-            title="人臉分析API",
-            description="上傳人臉相片壓縮檔，回傳不對稱性分類結果和標記圖片",
+            title="人臉分析與認知評估API",
+            description="上傳人臉相片壓縮檔和問卷資料，回傳6QDS認知評估、不對稱性分類結果和標記圖片",
             version="1.0.0"
         )
-        self.analyzer = FaceAnalysisAPI(symmetry_csv_path, xgb_model_path)
+        self.analyzer = FaceAnalysisAPI(symmetry_csv_path, asymmetry_model_path, q6ds_model_path)
         self._setup_routes()
     
     def _setup_routes(self):
         """設定API路由"""
         
-        @self.app.post("/analyze", response_model=AnalysisResponse, summary="分析人臉不對稱性")
-        async def analyze_face(file: UploadFile = File(...)):
+        @self.app.post("/analyze", response_model=AnalysisResponse, summary="分析人臉不對稱性和6QDS認知評估")
+        async def analyze_face_and_questionnaire(
+            file: UploadFile = File(...),
+            age: int = 65,
+            gender: int = 1,  # 0: 女性, 1: 男性
+            education_years: int = 6,
+            q1: int = 0,
+            q2: int = 0,
+            q3: int = 2,
+            q4: int = 1,
+            q5: int = 1,
+            q6: int = 1,
+            q7: int = 1,
+            q8: int = 1,
+            q9: int = 1,
+            q10: int = 1
+        ):
             """
-            分析人臉不對稱性的API端點
+            分析人臉不對稱性和6QDS認知評估的API端點
             
             - **file**: 包含人臉相片的壓縮檔（支援 ZIP, 7Z, RAR 格式）
+            - **age**: 年齡
+            - **gender**: 性別 (0: 女性, 1: 男性)
+            - **education_years**: 教育年數
+            - **q1-q10**: 問卷題目1-10的答案
             
             回傳:
             - **success**: 分析是否成功
             - **error**: 錯誤訊息（如有）
-            - **asymmetry_classification_result**: XGBoost模型預測結果
+            - **q6ds_classification_result**: 6QDS認知評估XGBoost模型預測結果
+            - **asymmetry_classification_result**: 不對稱性XGBoost模型預測結果
             - **marked_figure**: base64編碼的標記圖片
             """
             # 檢查檔案格式
@@ -602,6 +678,7 @@ class FaceAnalysisFastAPI:
                 return AnalysisResponse(
                     success=False,
                     error=f"支援的格式：{available_formats}。如需其他格式請安裝對應套件。",
+                    q6ds_classification_result=None,
                     asymmetry_classification_result=None,
                     marked_figure=None
                 )
@@ -612,19 +689,29 @@ class FaceAnalysisFastAPI:
                 return AnalysisResponse(
                     success=False,
                     error="檔案大小超過50MB限制",
+                    q6ds_classification_result=None,
                     asymmetry_classification_result=None,
                     marked_figure=None
                 )
             
+            # 建立問卷資料
+            questionnaire_data = QuestionnaireData(
+                age=age,
+                gender=gender,
+                education_years=education_years,
+                q1=q1, q2=q2, q3=q3, q4=q4, q5=q5,
+                q6=q6, q7=q7, q8=q8, q9=q9, q10=q10
+            )
+            
             # 處理檔案
-            return await self._process_uploaded_file(file.filename, content)
+            return await self._process_uploaded_file(file.filename, content, questionnaire_data)
         
         @self.app.get("/health", summary="健康檢查")
         async def health_check():
             """健康檢查端點"""
             return {
                 "status": "healthy",
-                "service": "Face Analysis API",
+                "service": "Face Analysis & Cognitive Assessment API",
                 "version": "1.0.0",
                 "supported_formats": self._get_supported_formats()
             }
@@ -633,12 +720,18 @@ class FaceAnalysisFastAPI:
         async def root():
             """API根路徑，回傳基本資訊"""
             return {
-                "message": "人臉分析API",
+                "message": "人臉分析與認知評估API",
                 "docs": "/docs",
                 "health": "/health",
-                "analyze": "/analyze (POST with archive file)",
+                "analyze": "/analyze (POST with archive file + questionnaire data)",
                 "supported_formats": self._get_supported_formats(),
-                "installation_notes": self._get_installation_notes()
+                "installation_notes": self._get_installation_notes(),
+                "questionnaire_fields": {
+                    "age": "年齡",
+                    "gender": "性別 (0: 女性, 1: 男性)",
+                    "education_years": "教育年數",
+                    "q1-q10": "問卷題目1-10的答案"
+                }
             }
     
     def _get_supported_formats(self) -> List[str]:
@@ -657,8 +750,8 @@ class FaceAnalysisFastAPI:
             "rar_support": "已安裝" if HAS_RAR_SUPPORT else "pip install rarfile"
         }
     
-    async def _process_uploaded_file(self, filename: str, content: bytes) -> AnalysisResponse:
-        """處理上傳的檔案"""
+    async def _process_uploaded_file(self, filename: str, content: bytes, questionnaire_data: QuestionnaireData) -> AnalysisResponse:
+        """處理上傳的檔案和問卷資料"""
         # 確定檔案副檔名
         file_ext = self._get_file_extension(filename)
         
@@ -672,14 +765,15 @@ class FaceAnalysisFastAPI:
             temp_file.flush()
             temp_file.close()
             
-            # 分析人臉
-            result = self.analyzer.analyze_from_archive(temp_file_path)
+            # 分析人臉和問卷
+            result = self.analyzer.analyze_from_archive_and_questionnaire(temp_file_path, questionnaire_data)
             return AnalysisResponse(**result)
             
         except Exception as e:
             return AnalysisResponse(
                 success=False,
                 error=f"處理檔案時發生錯誤: {str(e)}",
+                q6ds_classification_result=None,
                 asymmetry_classification_result=None,
                 marked_figure=None
             )
@@ -705,7 +799,7 @@ class FaceAnalysisFastAPI:
             print(f"清理臨時檔案時發生錯誤: {e}")
 
 
-# 主程式入口 - 直接初始化app
+# 應用程式配置和啟動
 def get_file_path(relative_path: str) -> str:
     """取得檔案的絕對路徑"""
     if os.path.isabs(relative_path):
@@ -716,9 +810,9 @@ def get_file_path(relative_path: str) -> str:
 
 def print_startup_info():
     """顯示啟動資訊"""
-    print("🚀 啟動人臉分析FastAPI服務...")
+    print("🚀 啟動人臉分析與認知評估FastAPI服務...")
     print("\n📋 API端點:")
-    print("  POST /analyze - 上傳壓縮檔案進行人臉分析")
+    print("  POST /analyze - 上傳壓縮檔案和問卷資料進行綜合分析")
     print("  GET /health - 健康檢查")
     print("  GET / - API資訊")
     print("  GET /docs - Swagger文檔")
@@ -727,8 +821,15 @@ def print_startup_info():
     print("\n📊 回傳格式:")
     print("  - success: 布林值，是否成功")
     print("  - error: 錯誤訊息（如有）")
-    print("  - asymmetry_classification_result: XGBoost模型預測結果")
+    print("  - q6ds_classification_result: 6QDS認知評估XGBoost模型預測結果")
+    print("  - asymmetry_classification_result: 不對稱性XGBoost模型預測結果")
     print("  - marked_figure: base64編碼的標記圖片")
+    
+    print("\n📝 問卷輸入:")
+    print("  - age: 年齡")
+    print("  - gender: 性別 (0: 女性, 1: 男性)")
+    print("  - education_years: 教育年數")
+    print("  - q1-q10: 問卷題目1-10的答案")
     
     print("\n📁 支援格式:")
     formats = ['.zip']
@@ -749,16 +850,19 @@ print_startup_info()
 
 # 設定檔案路徑
 symmetry_csv_path = get_file_path("./data/symmetry_all_pairs.csv")
-xgb_model_path = get_file_path("./data/xgb_face_asym_model.json")
+asymmetry_model_path = get_file_path("./data/xgb_face_asym_model.json")
+q6ds_model_path = get_file_path("./data/XGBoost.json")
 
 # 檢查檔案存在性
 if symmetry_csv_path and not os.path.exists(symmetry_csv_path):
     print(f"警告: 找不到對稱性CSV檔案: {symmetry_csv_path}")
-if xgb_model_path and not os.path.exists(xgb_model_path):
-    print(f"警告: 找不到XGBoost模型檔案: {xgb_model_path}")
+if asymmetry_model_path and not os.path.exists(asymmetry_model_path):
+    print(f"警告: 找不到不對稱性XGBoost模型檔案: {asymmetry_model_path}")
+if q6ds_model_path and not os.path.exists(q6ds_model_path):
+    print(f"警告: 找不到6QDS XGBoost模型檔案: {q6ds_model_path}")
 
 # 直接創建全域app實例
-api_server = FaceAnalysisFastAPI(symmetry_csv_path, xgb_model_path)
+api_server = FaceAnalysisFastAPI(symmetry_csv_path, asymmetry_model_path, q6ds_model_path)
 app = api_server.app
 
 # 主程式入口
