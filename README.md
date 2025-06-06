@@ -121,7 +121,24 @@ api/
 - `GET /redoc` - Alternative ReDoc API documentation
 - `GET /` - API information and configuration details
 
-## Installation
+## Docker Quick Start
+
+### change path
+```bash
+cd path/to/AD-Sensor-Project
+```
+
+### build image and named face-analysis-api
+```bash
+docker build -t face-analysis-api .
+```
+
+### start api
+```bash
+docker-compose up -d
+```
+
+## Development
 
 ### Prerequisites
 - Python 3.11.x
@@ -130,7 +147,6 @@ api/
 - Git
 
 ### Setup Steps
-
 1. **Clone the repository**
    ```bash
    git clone https://github.com/a7266165/AD-Sensor-Project.git
@@ -156,7 +172,7 @@ api/
    # For macOS/Linux:
    # Add to your ~/.bashrc or ~/.zshrc:
    # export PATH="$HOME/anaconda3/envs/poetry/bin:$PATH"
-
+   ```
 
 3. **Create work environment and install dependencies**
    ```bash
@@ -168,15 +184,6 @@ api/
 
    # Using Poetry to install project dependencies 
    poetry install --no-root
-   ```
-
-## Hardware Requirements
-
-- **Camera**: Intel RealSense D435/D415 or compatible
-- **Arduino**: Arduino Uno/Mega with LED circuit (optional)
-- **Computer**: not decide
-
-## Development
 
 ### Running in Development Mode
 ```bash
@@ -194,3 +201,10 @@ Visit `http://localhost:8000/docs` for interactive API testing with Swagger UI, 
 - Input questionnaire responses
 - View real-time analysis results
 - Download marked facial images
+
+
+## Hardware Requirements
+
+- **Camera**: Intel RealSense D435/D415 or compatible
+- **Arduino**: Arduino Uno/Mega with LED circuit (optional)
+- **Computer**: not decide
