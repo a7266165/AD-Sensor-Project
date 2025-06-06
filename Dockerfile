@@ -8,8 +8,8 @@ ENV POETRY_VENV=/opt/poetry-venv
 ENV POETRY_CACHE_DIR=/opt/.cache
 
 RUN python3 -m venv $POETRY_VENV \
-    && $POETRY_VENV/bin/pip install -U pip setuptools \
-    && $POETRY_VENV/bin/pip install poetry==${POETRY_VERSION}
+    && $POETRY_VENV/bin/pip install --no-cache-dir -U pip setuptools \
+    && $POETRY_VENV/bin/pip install --no-cache-dir poetry==${POETRY_VERSION}
 
 # 第二階段：依賴安裝環境
 FROM python:3.11-slim AS dependencies
