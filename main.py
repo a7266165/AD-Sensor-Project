@@ -101,7 +101,7 @@ class FaceAnalysisAPI:
             (1, 19), (19, 94), (94, 2),
         ]
 
-    def analyze_from_archive_and_questionnaire(self, archive_file_path: str, questionnaire_data: QuestionnaireData) -> Dict:
+    def analyze_from_archive_and_questionnaire(self, archive_file_path: str, questionnaire_data: QuestionnaireData, skip_face_selection: bool) -> Dict:
         """從壓縮檔和問卷資料分析"""
         with tempfile.TemporaryDirectory() as temp_dir:
             try:
@@ -109,7 +109,7 @@ class FaceAnalysisAPI:
                 extracted_dir = self._extract_archive_file(archive_file_path, temp_dir)
                 
                 # 分析人臉
-                result = self._analyze_face_from_folder(extracted_dir, questionnaire_data)
+                result = self._analyze_face_from_folder(extracted_dir, questionnaire_data, skip_face_selection)
                 
                 return result
                 
@@ -157,11 +157,15 @@ class FaceAnalysisAPI:
         
         raise ValueError("壓縮檔中未找到圖片檔案")
 
-    def _analyze_face_from_folder(self, folder_path: str, questionnaire_data: QuestionnaireData = None) -> Dict:
+    def _analyze_face_from_folder(self, folder_path: str, questionnaire_data: QuestionnaireData = None, skip_face_selection: bool = False) -> Dict:
         """從資料夾分析人臉"""
         try:
-            # 步驟1: 選擇最正面的照片並轉正
-            rotated_images = self._align_and_select_faces(folder_path)
+            # 步驟1: 決定是否選擇最正面的照片並轉正
+            if not skip_face_selection:
+                rotated_images = self._align_and_select_faces(folder_path)
+            else:
+                # 直接載入資料夾中所有影像，假設已經是正面
+                rotated_images = self._load_images(folder_path)
             
             if not rotated_images:
                 return {
@@ -292,6 +296,19 @@ class FaceAnalysisAPI:
                 rotated_images.append(rotated_image)
                 
         return rotated_images
+
+    def _load_images(self, folder_path: str) -> List:
+        """讀取資料夾中所有圖片檔案並回傳影像列表"""
+        images = []
+        for fname in os.listdir(folder_path):
+            path = os.path.join(folder_path, fname)
+            try:
+                img = cv2.imread(path)
+                if img is not None:
+                    images.append(img)
+            except Exception:
+                continue
+        return images
 
     def _extract_normalized_landmark_coordinates(self, rotated_face_images: List[np.ndarray]) -> Optional[np.ndarray]:
         """提取正規化的特徵點座標"""
@@ -638,7 +655,7 @@ class FaceAnalysisFastAPI:
     def _setup_routes(self):
         """設定API路由"""
         
-        @self.app.post("/analyze", response_model=AnalysisResponse, summary="分析人臉不對稱性和6QDS認知評估")
+        @self.app.post("/analyze_1200_pics", response_model=AnalysisResponse, summary="分析人臉不對稱性和6QDS認知評估(1200張未篩選相片)")
         async def analyze_face_and_questionnaire(
             file: UploadFile = File(...),
             age: int = 65,
@@ -658,7 +675,7 @@ class FaceAnalysisFastAPI:
             """
             分析人臉不對稱性和6QDS認知評估的API端點
             
-            - **file**: 包含人臉相片的壓縮檔（支援 ZIP, 7Z, RAR 格式）
+            - **file**: 包含未篩選人臉相片的壓縮檔（支援 ZIP, 7Z, RAR 格式）
             - **age**: 年齡
             - **gender**: 性別 (0: 女性, 1: 男性)
             - **education_years**: 教育年數
@@ -671,6 +688,7 @@ class FaceAnalysisFastAPI:
             - **asymmetry_classification_result**: 不對稱性XGBoost模型預測結果
             - **marked_figure**: base64編碼的標記圖片
             """
+            skip_face_selection = False
             # 檢查檔案格式
             supported_formats = self._get_supported_formats()
             if not any(file.filename.lower().endswith(fmt) for fmt in supported_formats):
@@ -704,8 +722,78 @@ class FaceAnalysisFastAPI:
             )
             
             # 處理檔案
-            return await self._process_uploaded_file(file.filename, content, questionnaire_data)
+            return await self._process_uploaded_file(file.filename, content, questionnaire_data, skip_face_selection)
         
+        @self.app.post("/analyze_n_pics", response_model=AnalysisResponse, summary="分析人臉不對稱性和6QDS認知評估(n張已篩選相片)")
+        async def analyze_face_and_questionnaire(
+            file: UploadFile = File(...),
+            age: int = 65,
+            gender: int = 1,  # 0: 女性, 1: 男性
+            education_years: int = 6,
+            q1: int = 0,
+            q2: int = 0,
+            q3: int = 2,
+            q4: int = 1,
+            q5: int = 1,
+            q6: int = 1,
+            q7: int = 1,
+            q8: int = 1,
+            q9: int = 1,
+            q10: int = 1
+        ):
+            """
+            分析人臉不對稱性和6QDS認知評估的API端點
+            
+            - **file**: 包含已篩選人臉相片的壓縮檔（支援 ZIP, 7Z, RAR 格式）
+            - **age**: 年齡
+            - **gender**: 性別 (0: 女性, 1: 男性)
+            - **education_years**: 教育年數
+            - **q1-q10**: 問卷題目1-10的答案
+            
+            回傳:
+            - **success**: 分析是否成功
+            - **error**: 錯誤訊息（如有）
+            - **q6ds_classification_result**: 6QDS認知評估XGBoost模型預測結果
+            - **asymmetry_classification_result**: 不對稱性XGBoost模型預測結果
+            - **marked_figure**: base64編碼的標記圖片
+            """
+            skip_face_selection = True
+            # 檢查檔案格式
+            supported_formats = self._get_supported_formats()
+            if not any(file.filename.lower().endswith(fmt) for fmt in supported_formats):
+                available_formats = ', '.join(supported_formats)
+                return AnalysisResponse(
+                    success=False,
+                    error=f"支援的格式：{available_formats}。如需其他格式請安裝對應套件。",
+                    q6ds_classification_result=None,
+                    asymmetry_classification_result=None,
+                    marked_figure=None
+                )
+            
+            # 檢查檔案大小
+            content = await file.read()
+            if len(content) > 50 * 1024 * 1024:  # 50MB限制
+                return AnalysisResponse(
+                    success=False,
+                    error="檔案大小超過50MB限制",
+                    q6ds_classification_result=None,
+                    asymmetry_classification_result=None,
+                    marked_figure=None
+                )
+            
+            # 建立問卷資料
+            questionnaire_data = QuestionnaireData(
+                age=age,
+                gender=gender,
+                education_years=education_years,
+                q1=q1, q2=q2, q3=q3, q4=q4, q5=q5,
+                q6=q6, q7=q7, q8=q8, q9=q9, q10=q10
+            )
+            
+            # 處理檔案
+            return await self._process_uploaded_file(file.filename, content, questionnaire_data, skip_face_selection)
+
+
         @self.app.get("/health", summary="健康檢查")
         async def health_check():
             """健康檢查端點"""
@@ -750,7 +838,7 @@ class FaceAnalysisFastAPI:
             "rar_support": "已安裝" if HAS_RAR_SUPPORT else "pip install rarfile"
         }
     
-    async def _process_uploaded_file(self, filename: str, content: bytes, questionnaire_data: QuestionnaireData) -> AnalysisResponse:
+    async def _process_uploaded_file(self, filename: str, content: bytes, questionnaire_data: QuestionnaireData, skip_face_selection: bool) -> AnalysisResponse:
         """處理上傳的檔案和問卷資料"""
         # 確定檔案副檔名
         file_ext = self._get_file_extension(filename)
@@ -766,7 +854,7 @@ class FaceAnalysisFastAPI:
             temp_file.close()
             
             # 分析人臉和問卷
-            result = self.analyzer.analyze_from_archive_and_questionnaire(temp_file_path, questionnaire_data)
+            result = self.analyzer.analyze_from_archive_and_questionnaire(temp_file_path, questionnaire_data, skip_face_selection)
             return AnalysisResponse(**result)
             
         except Exception as e:
